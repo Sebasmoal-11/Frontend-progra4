@@ -1,0 +1,28 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button></ion-back-button>
+    </ion-buttons>
+    <ion-title>Historial</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-list>
+    <ion-item *ngFor="let transaccion of transacciones">
+      <ion-label>
+        <h3>{{ transaccion.descripcion || 'Transacción' }}</h3>
+        <p>Fecha: {{ transaccion.fecha | date:'medium' }}</p>
+        <p *ngIf="transaccion.tipoOperacion">Tipo: {{ transaccion.tipoOperacion }}</p>
+      </ion-label>
+      <ion-note slot="end" [color]="transaccion.monto >= 0 ? 'success' : 'danger'">
+        <h4>{{ transaccion.monto >= 0 ? '+' : '' }}₡{{ transaccion.monto | number }}</h4>
+      </ion-note>
+    </ion-item>
+  </ion-list>
+
+  <div *ngIf="loading" class="ion-text-center ion-padding">
+    <ion-spinner></ion-spinner>
+    <p>Cargando transacciones...</p>
+  </div>
+</ion-content>

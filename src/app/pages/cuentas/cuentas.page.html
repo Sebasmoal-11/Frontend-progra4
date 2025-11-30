@@ -1,0 +1,28 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button></ion-back-button>
+    </ion-buttons>
+    <ion-title>Mis Cuentas</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-list>
+    <ion-item *ngFor="let cuenta of cuentas">
+      <ion-label>
+        <h2>{{ cuenta.numeroCuenta }}</h2>
+        <p>Tipo: {{ cuenta.tipoCuenta }} | Moneda: {{ cuenta.moneda }}</p>
+        <p><strong>Saldo: ₡{{ cuenta.saldo | number }}</strong></p>
+        <ion-badge [color]="getEstadoColor(cuenta.estadoCuenta)">
+          {{ cuenta.estadoCuenta }}
+        </ion-badge>
+      </ion-label>
+    </ion-item>
+  </ion-list>
+
+  <div *ngIf="loading" class="ion-text-center ion-padding">
+    <ion-spinner></ion-spinner>
+    <p>Cargando cuentas...</p>
+  </div>
+</ion-content>

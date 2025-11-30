@@ -1,0 +1,57 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Iniciar Sesión</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div class="login-container">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Banca Online</ion-card-title>
+        <ion-card-subtitle>Ingresa a tu cuenta</ion-card-subtitle>
+      </ion-card-header>
+
+      <ion-card-content>
+        <form (ngSubmit)="login()">
+          <ion-item>
+            <ion-label position="stacked">Email</ion-label>
+            <ion-input 
+              type="email" 
+              [(ngModel)]="credentials.email" 
+              name="email"
+              required>
+            </ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Contraseña</ion-label>
+            <ion-input 
+              type="password" 
+              [(ngModel)]="credentials.password" 
+              name="password"
+              required>
+            </ion-input>
+          </ion-item>
+
+          <ion-button 
+            expand="block" 
+            type="submit" 
+            [disabled]="loading"
+            class="ion-margin-top">
+            <ion-spinner *ngIf="loading"></ion-spinner>
+            Ingresar
+          </ion-button>
+        </form>
+
+        <ion-alert
+          [isOpen]="showError"
+          header="Error"
+          [message]="errorMessage"
+          buttons="['OK']"
+          (didDismiss)="showError = false">
+        </ion-alert>
+      </ion-card-content>
+    </ion-card>
+  </div>
+</ion-content>

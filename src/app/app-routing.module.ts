@@ -1,20 +1,51 @@
 import { NgModule } from '@angular/core';
-import { Routes, RouterModule } from '@angular/router';
+import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
+import { AuthGuard } from './guards/auth.guard';
 
 const routes: Routes = [
   {
+    path: 'login',
+    loadComponent: () => import('./pages/login/login.page').then(m => m.LoginPage)
+  },
+  {
+    path: 'dashboard',
+    loadComponent: () => import('./pages/dashboard/dashboard.page').then(m => m.DashboardPage),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'transferencias',
+    loadComponent: () => import('./pages/transferencias/transferencias.page').then(m => m.TransferenciasPage),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'cuentas',
+    loadComponent: () => import('./pages/cuentas/cuentas.page').then(m => m.CuentasPage),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'historial',
+    loadComponent: () => import('./pages/historial/historial.page').then(m => m.HistorialPage),
+    canActivate: [AuthGuard]
+  },
+  {
     path: 'home',
-    loadComponent: () => import('./home/home.page').then((c) => c.HomePage),
+    loadComponent: () => import('./home/home.page').then(m => m.HomePage)
   },
   {
     path: '',
-    redirectTo: 'home',
-    pathMatch: 'full',
+    redirectTo: 'dashboard',
+    pathMatch: 'full'
   },
+  {
+    path: '**',
+    redirectTo: 'dashboard'
+  }
 ];
 
 @NgModule({
-  imports: [RouterModule.forRoot(routes)],
-  exports: [RouterModule],
+  imports: [
+    RouterModule.forRoot(routes, { preloadingStrategy: PreloadAllModules })
+  ],
+  exports: [RouterModule]
 })
-export class AppRoutingModule {}
+export class AppRoutingModule { }

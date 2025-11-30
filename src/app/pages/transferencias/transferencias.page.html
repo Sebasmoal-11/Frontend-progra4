@@ -1,0 +1,131 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button></ion-back-button>
+    </ion-buttons>
+    <ion-title>Transferencias</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-toolbar>
+    <ion-segment [(ngModel)]="segment" (ionChange)="segmentChanged()">
+      <ion-segment-button value="nueva">
+        <ion-label>Nueva Transferencia</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="historial">
+        <ion-label>Historial</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+
+  <!-- Nueva Transferencia -->
+  <div *ngIf="segment === 'nueva'">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Realizar Transferencia</ion-card-title>
+      </ion-card-header>
+
+      <ion-card-content>
+        <form (ngSubmit)="crearTransferencia()">
+          <!-- Cuenta Origen -->
+          <ion-item>
+            <ion-label position="stacked">Cuenta Origen</ion-label>
+            <ion-select [(ngModel)]="transferencia.cuentaOrigenId" name="cuentaOrigen" required>
+              <ion-select-option *ngFor="let cuenta of cuentas" [value]="cuenta.cuentaId">
+                {{ cuenta.numeroCuenta }} - ₡{{ cuenta.saldo | number }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <!-- Tipo de Destino -->
+          <ion-item>
+            <ion-label position="stacked">Tipo de Destino</ion-label>
+            <ion-select [(ngModel)]="tipoDestino" name="tipoDestino" (ionChange)="cambiarTipoDestino()">
+              <ion-select-option value="propia">Cuenta Propia</ion-select-option>
+              <ion-select-option value="tercero">Beneficiario</ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <!-- Destino según tipo -->
+          <ion-item *ngIf="tipoDestino === 'propia'">
+            <ion-label position="stacked">Cuenta Destino</ion-label>
+            <ion-select [(ngModel)]="transferencia.cuentaDestinoId" name="cuentaDestino">
+              <ion-select-option *ngFor="let cuenta of cuentas" [value]="cuenta.cuentaId">
+                {{ cuenta.numeroCuenta }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <ion-item *ngIf="tipoDestino === 'tercero'">
+            <ion-label position="stacked">Beneficiario</ion-label>
+            <ion-select [(ngModel)]="transferencia.terceroBeneficiarioId" name="beneficiario">
+              <ion-select-option *ngFor="let ben of beneficiarios" [value]="ben.terceroBeneficiarioId">
+                {{ ben.alias }} - {{ ben.numeroCuenta }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <!-- Monto -->
+          <ion-item>
+            <ion-label position="stacked">Monto</ion-label>
+            <ion-input 
+              type="number" 
+              [(ngModel)]="transferencia.monto" 
+              name="monto"
+              placeholder="0.00"
+              required>
+            </ion-input>
+          </ion-item>
+
+          <!-- Programada -->
+          <ion-item>
+            <ion-label>Transferencia Programada</ion-label>
+            <ion-toggle [(ngModel)]="transferencia.esProgramada" name="programada"></ion-toggle>
+          </ion-item>
+
+          <ion-item *ngIf="transferencia.esProgramada">
+            <ion-label position="stacked">Fecha Ejecución</ion-label>
+            <ion-datetime 
+              [(ngModel)]="transferencia.fechaEjecucion" 
+              name="fechaEjecucion"
+              presentation="date"
+              min="{{ minDate }}"
+              max="{{ maxDate }}">
+            </ion-datetime>
+          </ion-item>
+
+          <ion-button 
+            expand="block" 
+            type="submit" 
+            [disabled]="loading"
+            class="ion-margin-top">
+            <ion-spinner *ngIf="loading"></ion-spinner>
+            Realizar Transferencia
+          </ion-button>
+        </form>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!-- Historial -->
+  <div *ngIf="segment === 'historial'">
+    <ion-list>
+      <ion-item *ngFor="let transferencia of historialTransferencias">
+        <ion-label>
+          <h3>Transferencia #{{ transferencia.transferenciaId }}</h3>
+          <p>Monto: ₡{{ transferencia.monto | number }}</p>
+          <p>Estado: {{ transferencia.estado }}</p>
+          <p>Fecha: {{ transferencia.fechaCreacion | date }}</p>
+        </ion-label>
+        <ion-button 
+          *ngIf="transferencia.estado === 'Programada'" 
+          fill="outline" 
+          size="small"
+          (click)="cancelarTransferencia(transferencia.transferenciaId)">
+          Cancelar
+        </ion-button>
+      </ion-item>
+    </ion-list>
+  </div>
+</ion-content>
