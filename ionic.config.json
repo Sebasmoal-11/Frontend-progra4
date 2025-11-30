@@ -1,0 +1,7 @@
+{
+  "name": "bancaOnline",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}
