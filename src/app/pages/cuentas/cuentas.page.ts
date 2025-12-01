@@ -1,11 +1,16 @@
 import { Component, OnInit } from '@angular/core';
 import { CuentasService } from '../../services/cuentas.service';
 import { Cuenta } from '../../models/models/types';
+import { CommonModule, DecimalPipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { IonicModule } from '@ionic/angular';
 
 @Component({
   selector: 'app-cuentas',
   templateUrl: './cuentas.page.html',
   styleUrls: ['./cuentas.page.scss'],
+  standalone: true, 
+  imports: [IonicModule, CommonModule, FormsModule]
 })
 export class CuentasPage implements OnInit {
   cuentas: Cuenta[] = [];

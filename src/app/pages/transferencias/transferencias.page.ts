@@ -3,11 +3,16 @@ import { CuentasService } from '../../services/cuentas.service';
 import { TransferenciasService } from '../../services/transferencias.service';
 import { BeneficiariosService } from '../../services/beneficiarios.service';
 import { Cuenta, Beneficiario, Transferencia } from '../../models/models/types';
+import { CommonModule, DecimalPipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { IonicModule } from '@ionic/angular';
 
 @Component({
   selector: 'app-transferencias',
   templateUrl: './transferencias.page.html',
   styleUrls: ['./transferencias.page.scss'],
+  standalone: true,
+  imports: [IonicModule, CommonModule, FormsModule] 
 })
 export class TransferenciasPage implements OnInit {
   segment = 'nueva';
