@@ -6,7 +6,8 @@ import {
   ModalController,
   AlertController,
   ToastController,
-  ActionSheetController
+  ActionSheetController,
+  LoadingController
 } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { AuthService, Cuenta } from '../../services/auth';
@@ -44,6 +45,7 @@ export class CuentasPage implements OnInit {
     private alertCtrl: AlertController,
     private toastCtrl: ToastController,
     private actionSheetCtrl: ActionSheetController,
+    private loadingCtrl: LoadingController,
     private router: Router
   ) { }
 
@@ -74,59 +76,59 @@ export class CuentasPage implements OnInit {
   }
 
   async cargarCuentas() {
-  this.loading = true;
-  console.log('Cargando cuentas...');
+    this.loading = true;
+    console.log('Cargando cuentas...');
 
-  try {
-    if (this.esAdmin || this.esGestor) {
-      console.log('Usando getAllCuentas()');
-      
-      this.cuentasService.getAllCuentas().subscribe(
-        (cuentas: any[]) => {
-          console.log(`${cuentas.length} cuentas cargadas:`, cuentas);
-          this.todasLasCuentas = cuentas;
-          this.cuentas = [...cuentas];
-          this.loading = false;
-        },
-        error => {
-          console.error('Error en getAllCuentas:', error);
-          this.mostrarToast('Error cargando cuentas', 'danger');
-          this.loading = false;
-        }
-      );
-      
-    } else if (this.esCliente) {
-      console.log('👤 Usando getCuentasPorCliente()');
-      const usuario = this.authService.getCurrentUser();
-      const clienteId = usuario?.clienteId;
-      
-      if (clienteId) {
-        console.log(`Cliente ID: ${clienteId}`);
-        
-        this.cuentasService.getCuentasPorCliente(clienteId).subscribe(
+    try {
+      if (this.esAdmin || this.esGestor) {
+        console.log('Usando getAllCuentas()');
+
+        this.cuentasService.getAllCuentas().subscribe(
           (cuentas: any[]) => {
-            console.log(`${cuentas.length} cuentas del cliente:`, cuentas);
-            this.cuentas = cuentas;
+            console.log(`${cuentas.length} cuentas cargadas:`, cuentas);
+            this.todasLasCuentas = cuentas;
+            this.cuentas = [...cuentas];
             this.loading = false;
           },
           error => {
-            console.error('Error en getCuentasPorCliente:', error);
-            this.mostrarToast('Error cargando sus cuentas', 'danger');
+            console.error('Error en getAllCuentas:', error);
+            this.mostrarToast('Error cargando cuentas', 'danger');
             this.loading = false;
           }
         );
-      } else {
-        console.log('Cliente sin ID');
-        this.cuentas = [];
-        this.loading = false;
-        this.mostrarToast('No se encontró información del cliente', 'warning');
+
+      } else if (this.esCliente) {
+        console.log('👤 Usando getCuentasPorCliente()');
+        const usuario = this.authService.getCurrentUser();
+        const clienteId = usuario?.clienteId;
+
+        if (clienteId) {
+          console.log(`Cliente ID: ${clienteId}`);
+
+          this.cuentasService.getCuentasPorCliente(clienteId).subscribe(
+            (cuentas: any[]) => {
+              console.log(`${cuentas.length} cuentas del cliente:`, cuentas);
+              this.cuentas = cuentas;
+              this.loading = false;
+            },
+            error => {
+              console.error('Error en getCuentasPorCliente:', error);
+              this.mostrarToast('Error cargando sus cuentas', 'danger');
+              this.loading = false;
+            }
+          );
+        } else {
+          console.log('Cliente sin ID');
+          this.cuentas = [];
+          this.loading = false;
+          this.mostrarToast('No se encontró información del cliente', 'warning');
+        }
       }
+    } catch (error) {
+      console.error('Error general:', error);
+      this.loading = false;
     }
-  } catch (error) {
-    console.error('Error general:', error);
-    this.loading = false;
   }
-}
 
   // Filtrar cuentas - CORREGIDO
   aplicarFiltros() {
@@ -263,32 +265,197 @@ export class CuentasPage implements OnInit {
     await actionSheet.present();
   }
 
-  // Cambiar estado de cuenta - CORREGIDO
+  // Cambiar estado de cuenta
   async cambiarEstado(cuenta: any, nuevoEstado: string) {
-    const alert = await this.alertCtrl.create({
-      header: 'Confirmar',
-      message: `¿Está seguro de ${nuevoEstado.toLowerCase()} la cuenta ${cuenta.numero}?`,
+  console.log(`Intentando cambiar cuenta ${cuenta.numero} a estado: ${nuevoEstado}`);
+  console.log('Estado actual:', cuenta.estado);
+  console.log('Saldo actual:', cuenta.saldo);
+
+  // Validaciones específicas
+  if (nuevoEstado === 'Cerrada') {
+    // Verificar si la cuenta está bloqueada
+    if (cuenta.estado === 'Bloqueada') {
+      const alertBloqueada = await this.alertCtrl.create({
+        header: 'No se puede cerrar',
+        message: `La cuenta ${cuenta.numero} está BLOQUEADA.<br><br>
+                 Para cerrar la cuenta, primero debe ACTIVARLA y luego cerrarla.<br><br>
+                 <strong>Flujo correcto:</strong><br>
+                 1. Activar la cuenta<br>
+                 2. Cerrar la cuenta`,
+        buttons: ['Entendido']
+      });
+      await alertBloqueada.present();
+      return;
+    }
+
+    // Verificar si tiene saldo
+    if (cuenta.saldo !== 0) {
+      const alertSaldo = await this.alertCtrl.create({
+        header: 'No se puede cerrar',
+        message: `La cuenta ${cuenta.numero} tiene saldo de ${this.formatoMoneda(cuenta.saldo, cuenta.moneda)}.<br><br>
+                 Para cerrar la cuenta, primero debe transferir o retirar todo el saldo.`,
+        buttons: ['Entendido']
+      });
+      await alertSaldo.present();
+      return;
+    }
+  }
+
+  // Para activar una cuenta bloqueada
+  if (nuevoEstado === 'Activa' && cuenta.estado === 'Bloqueada') {
+    const confirmActivar = await this.alertCtrl.create({
+      header: 'Activar Cuenta Bloqueada',
+      message: `¿Está seguro de activar la cuenta ${cuenta.numero}?<br><br>
+               La cuenta está actualmente BLOQUEADA.`,
       buttons: [
         {
           text: 'Cancelar',
           role: 'cancel'
         },
         {
-          text: 'Confirmar',
-          handler: async () => {
-            try {
-              const resultado = await this.cuentasService.cambiarEstado(cuenta.cuentaId, nuevoEstado).toPromise();
-              this.mostrarToast('Estado cambiado exitosamente', 'success');
-              this.cargarCuentas();
-            } catch (error) {
-              this.mostrarToast('Error cambiando estado de la cuenta', 'danger');
-            }
+          text: 'Activar',
+          handler: () => {
+            this.ejecutarCambioEstado(cuenta.cuentaId, nuevoEstado, cuenta);
+          }
+        }
+      ]
+    });
+    await confirmActivar.present();
+    return;
+  }
+
+  // Confirmación normal para otros cambios
+  const confirmAlert = await this.alertCtrl.create({
+    header: 'Confirmar',
+    message: `¿Está seguro de ${nuevoEstado.toLowerCase()} la cuenta ${cuenta.numero}?`,
+    buttons: [
+      {
+        text: 'Cancelar',
+        role: 'cancel'
+      },
+      {
+        text: 'Confirmar',
+        handler: () => {
+          this.ejecutarCambioEstado(cuenta.cuentaId, nuevoEstado, cuenta);
+        }
+      }
+    ]
+  });
+
+  await confirmAlert.present();
+}
+
+// Método separado para ejecutar el cambio
+private async ejecutarCambioEstado(cuentaId: number, estado: string, cuenta: any) {
+  try {
+    const resultado = await this.cuentasService.cambiarEstado(cuentaId, estado).toPromise();
+    this.mostrarToast('Estado cambiado exitosamente', 'success');
+    
+    // Si se activó una cuenta bloqueada, sugerir cerrarla si tiene saldo 0
+    if (estado === 'Activa' && cuenta.estado === 'Bloqueada' && cuenta.saldo === 0) {
+      setTimeout(() => {
+        this.sugerirCerrarCuenta(cuenta);
+      }, 1000);
+    }
+    
+    this.cargarCuentas();
+  } catch (error: any) {
+    this.mostrarToast(error.message || 'Error cambiando estado de la cuenta', 'danger');
+  }
+}
+
+// Método para sugerir cerrar una cuenta que fue activada y tiene saldo 0
+private async sugerirCerrarCuenta(cuenta: any) {
+  const sugerenciaAlert = await this.alertCtrl.create({
+    header: 'Sugerencia',
+    message: `La cuenta ${cuenta.numero} ha sido activada y tiene saldo 0.<br><br>
+             ¿Desea cerrar la cuenta ahora?`,
+    buttons: [
+      {
+        text: 'No, más tarde',
+        role: 'cancel'
+      },
+      {
+        text: 'Sí, cerrar',
+        handler: () => {
+          this.cambiarEstado(cuenta, 'Cerrada');
+        }
+      }
+    ]
+  });
+  
+  await sugerenciaAlert.present();
+}
+
+  async eliminarCuenta(cuenta: any) {
+    if (cuenta.saldo !== 0) {
+      const alertNoSaldo = await this.alertCtrl.create({
+        header: 'No se puede eliminar',
+        message: `La cuenta ${cuenta.numero} tiene saldo de ${this.formatoMoneda(cuenta.saldo, cuenta.moneda)}.<br><br>
+               Para eliminar la cuenta, primero debe transferir o retirar todo el saldo.`,
+        buttons: ['Entendido']
+      });
+      await alertNoSaldo.present();
+      return;
+    }
+
+    if (cuenta.estado !== 'Cerrada') {
+      const alertNoCerrada = await this.alertCtrl.create({
+        header: 'No se puede eliminar',
+        message: `La cuenta ${cuenta.numero} tiene estado "${cuenta.estado}".<br><br>
+               Para eliminar la cuenta, primero debe cerrarla.`,
+        buttons: ['Entendido']
+      });
+      await alertNoCerrada.present();
+      return;
+    }
+
+    // Si cumple las condiciones, mostrar confirmación
+    const confirmacionAlert = await this.alertCtrl.create({
+      header: 'Confirmar Eliminación',
+      message: `¿Está seguro de eliminar la cuenta ${cuenta.numero}?<br><br>
+             <strong>Esta acción no se puede deshacer.</strong><br><br>
+             <strong>Datos de la cuenta:</strong><br>
+             • Número: ${cuenta.numero}<br>
+             • Saldo: ${this.formatoMoneda(cuenta.saldo, cuenta.moneda)}<br>
+             • Estado: ${cuenta.estado}<br>
+             • Tipo: ${cuenta.tipo}`,
+      buttons: [
+        {
+          text: 'Cancelar',
+          role: 'cancel'
+        },
+        {
+          text: 'Eliminar',
+          handler: () => {
+            this.ejecutarEliminacion(cuenta);
           }
         }
       ]
     });
 
-    await alert.present();
+    await confirmacionAlert.present();
+  }
+  //Eliminar cuenta 
+  private async ejecutarEliminacion(cuenta: any) {
+    const loading = await this.loadingCtrl.create({
+      message: 'Eliminando cuenta...'
+    });
+    await loading.present();
+
+    try {
+      const resultado = await this.cuentasService.eliminarCuenta(cuenta.cuentaId).toPromise();
+
+      await loading.dismiss();
+
+      if (resultado.success) {
+        this.mostrarToast(resultado.mensaje, 'success');
+        this.cargarCuentas(); // Recargar la lista
+      }
+    } catch (error: any) {
+      await loading.dismiss();
+      this.mostrarToast(error.message || 'Error al eliminar la cuenta', 'danger');
+    }
   }
 
   // Mostrar toast
