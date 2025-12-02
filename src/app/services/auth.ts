@@ -46,6 +46,8 @@ export interface Cliente {
   email: string;
   identificacion: string;
   telefono: string;
+  usuarioId?: number;
+  correo?: string;
 }
 
 @Injectable({

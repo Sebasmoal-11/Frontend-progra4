@@ -21,14 +21,9 @@
         <!-- Cliente (solo admin) -->
         <ion-item *ngIf="esAdmin" fill="outline" class="ion-margin-bottom">
           <ion-label position="floating">Seleccionar Cliente</ion-label>
-          <ion-select 
-            [(ngModel)]="datosCuenta.clienteId" 
-            name="clienteId" 
-            required
-            interface="action-sheet"
-          >
-            <ion-select-option *ngFor="let cliente of clientes" [value]="cliente.id">
-              {{ cliente.nombre }} ({{ cliente.email }})
+          <ion-select [(ngModel)]="datosCuenta.clienteId" name="clienteId" required interface="action-sheet">
+            <ion-select-option *ngFor="let cliente of clientes" [value]="cliente.clienteId">
+              {{ cliente.nombreCompleto }} - {{ cliente.identificacion }} ({{ cliente.correo }})
             </ion-select-option>
           </ion-select>
         </ion-item>
@@ -36,12 +31,7 @@
         <!-- Tipo de cuenta -->
         <ion-item fill="outline" class="ion-margin-bottom">
           <ion-label position="floating">Tipo de Cuenta *</ion-label>
-          <ion-select 
-            [(ngModel)]="datosCuenta.tipoCuenta" 
-            name="tipoCuenta" 
-            required
-            interface="action-sheet"
-          >
+          <ion-select [(ngModel)]="datosCuenta.tipoCuenta" name="tipoCuenta" required interface="action-sheet">
             <ion-select-option *ngFor="let tipo of tiposCuenta" [value]="tipo">
               {{ tipo }}
             </ion-select-option>
@@ -51,12 +41,7 @@
         <!-- Moneda -->
         <ion-item fill="outline" class="ion-margin-bottom">
           <ion-label position="floating">Moneda *</ion-label>
-          <ion-select 
-            [(ngModel)]="datosCuenta.moneda" 
-            name="moneda" 
-            required
-            interface="action-sheet"
-          >
+          <ion-select [(ngModel)]="datosCuenta.moneda" name="moneda" required interface="action-sheet">
             <ion-select-option *ngFor="let moneda of monedas" [value]="moneda">
               {{ moneda === 'CRC' ? 'Colones (₡)' : 'Dólares ($)' }}
             </ion-select-option>
@@ -66,26 +51,15 @@
         <!-- Saldo inicial -->
         <ion-item fill="outline" class="ion-margin-bottom">
           <ion-label position="floating">Saldo Inicial *</ion-label>
-          <ion-input 
-            type="number" 
-            [(ngModel)]="datosCuenta.saldoInicial" 
-            name="saldoInicial" 
-            required
-            min="0"
-            step="0.01"
-          ></ion-input>
+          <ion-input type="number" [(ngModel)]="datosCuenta.saldoInicial" name="saldoInicial" required min="0"
+            step="0.01"></ion-input>
         </ion-item>
 
         <!-- Alias (opcional) -->
         <ion-item fill="outline" class="ion-margin-bottom">
           <ion-label position="floating">Alias (opcional)</ion-label>
-          <ion-input 
-            type="text" 
-            [(ngModel)]="datosCuenta.alias" 
-            name="alias"
-            maxlength="30"
-            placeholder="Ej: Cuenta Principal"
-          ></ion-input>
+          <ion-input type="text" [(ngModel)]="datosCuenta.alias" name="alias" maxlength="30"
+            placeholder="Ej: Cuenta Principal"></ion-input>
         </ion-item>
 
         <!-- Resumen -->
@@ -96,7 +70,7 @@
           <ion-card-content>
             <p><strong>Tipo:</strong> {{ datosCuenta.tipoCuenta }}</p>
             <p><strong>Moneda:</strong> {{ datosCuenta.moneda === 'CRC' ? 'Colones (₡)' : 'Dólares ($)' }}</p>
-            <p><strong>Saldo Inicial:</strong> 
+            <p><strong>Saldo Inicial:</strong>
               {{ datosCuenta.moneda === 'CRC' ? '₡' : '$' }}
               {{ datosCuenta.saldoInicial.toLocaleString('es-CR') }}
             </p>
@@ -105,23 +79,12 @@
 
         <!-- Botones -->
         <div class="ion-margin-top">
-          <ion-button 
-            expand="block" 
-            color="primary" 
-            type="submit" 
-            [disabled]="!formularioValido() || loading"
-          >
+          <ion-button expand="block" color="primary" type="submit" [disabled]="!formularioValido() || loading">
             <ion-spinner *ngIf="loading" name="crescent"></ion-spinner>
             <span *ngIf="!loading">Abrir Cuenta</span>
           </ion-button>
-          
-          <ion-button 
-            expand="block" 
-            color="medium" 
-            fill="outline" 
-            (click)="cancelar()"
-            class="ion-margin-top"
-          >
+
+          <ion-button expand="block" color="medium" fill="outline" (click)="cancelar()" class="ion-margin-top">
             Cancelar
           </ion-button>
         </div>

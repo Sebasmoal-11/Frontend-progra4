@@ -17,12 +17,8 @@
 
   <!-- Barra de filtros -->
   <ion-toolbar>
-    <ion-searchbar 
-      [(ngModel)]="filtro.searchTerm"
-      (ionInput)="aplicarFiltros()"
-      placeholder="Buscar cuenta, alias..."
-      debounce="300"
-    ></ion-searchbar>
+    <ion-searchbar [(ngModel)]="filtro.searchTerm" (ionInput)="aplicarFiltros()" placeholder="Buscar cuenta, alias..."
+      debounce="300"></ion-searchbar>
   </ion-toolbar>
 </ion-header>
 
@@ -61,11 +57,7 @@
           <ion-col size="12" size-md="4">
             <ion-item>
               <ion-label>Tipo</ion-label>
-              <ion-select 
-                [(ngModel)]="filtro.tipo" 
-                (ionChange)="aplicarFiltros()"
-                interface="popover"
-              >
+              <ion-select [(ngModel)]="filtro.tipo" (ionChange)="aplicarFiltros()" interface="popover">
                 <ion-select-option value="">Todos</ion-select-option>
                 <ion-select-option value="Ahorros">Ahorros</ion-select-option>
                 <ion-select-option value="Corriente">Corriente</ion-select-option>
@@ -77,11 +69,7 @@
           <ion-col size="12" size-md="4">
             <ion-item>
               <ion-label>Moneda</ion-label>
-              <ion-select 
-                [(ngModel)]="filtro.moneda" 
-                (ionChange)="aplicarFiltros()"
-                interface="popover"
-              >
+              <ion-select [(ngModel)]="filtro.moneda" (ionChange)="aplicarFiltros()" interface="popover">
                 <ion-select-option value="">Todas</ion-select-option>
                 <ion-select-option value="CRC">Colones (₡)</ion-select-option>
                 <ion-select-option value="USD">Dólares ($)</ion-select-option>
@@ -91,11 +79,7 @@
           <ion-col size="12" size-md="4">
             <ion-item>
               <ion-label>Estado</ion-label>
-              <ion-select 
-                [(ngModel)]="filtro.estado" 
-                (ionChange)="aplicarFiltros()"
-                interface="popover"
-              >
+              <ion-select [(ngModel)]="filtro.estado" (ionChange)="aplicarFiltros()" interface="popover">
                 <ion-select-option value="">Todos</ion-select-option>
                 <ion-select-option value="Activa">Activa</ion-select-option>
                 <ion-select-option value="Bloqueada">Bloqueada</ion-select-option>
@@ -126,10 +110,9 @@
       <h3>No se encontraron cuentas</h3>
       <p *ngIf="esCliente">No tienes cuentas registradas</p>
       <p *ngIf="esAdmin || esGestor">No hay cuentas que coincidan con los filtros</p>
-      <ion-button *ngIf="(esAdmin || esGestor) && !filtro.searchTerm" 
-                  (click)="abrirNuevaCuenta()" color="primary">
+      <ion-button *ngIf="esAdmin || esGestor" (click)="abrirNuevaCuenta()" color="primary">
         <ion-icon name="add-outline" slot="start"></ion-icon>
-        Abrir primera cuenta
+        Abrir nueva cuenta
       </ion-button>
     </ion-card-content>
   </ion-card>
@@ -138,12 +121,9 @@
   <ion-list *ngIf="!loading && cuentas.length > 0">
     <ion-item-sliding *ngFor="let cuenta of cuentas">
       <ion-item button (click)="verDetalle(cuenta)">
-        <ion-icon 
-          slot="start" 
-          [name]="iconoTipo(cuenta.tipo)" 
-          [color]="colorEstado(cuenta.estado)">
+        <ion-icon slot="start" [name]="iconoTipo(cuenta.tipo)" [color]="colorEstado(cuenta.estado)">
         </ion-icon>
-        
+
         <ion-label>
           <h2>{{ cuenta.alias }}</h2>
           <p>
@@ -157,7 +137,7 @@
             Cliente: {{ cuenta.clienteNombre || 'N/A' }}
           </p>
         </ion-label>
-        
+
         <ion-note slot="end">
           <h3 style="font-weight: bold; color: var(--ion-color-primary);">
             {{ formatoMoneda(cuenta.saldo, cuenta.moneda) }}
@@ -171,12 +151,9 @@
         <ion-item-option color="primary" (click)="verDetalle(cuenta)">
           <ion-icon slot="icon-only" name="eye-outline"></ion-icon>
         </ion-item-option>
-        <ion-item-option 
-          color="warning" 
-          (click)="cambiarEstado(cuenta, cuenta.estado === 'Activa' ? 'Bloqueada' : 'Activa')"
-        >
-          <ion-icon slot="icon-only" 
-            [name]="cuenta.estado === 'Activa' ? 'lock-closed-outline' : 'lock-open-outline'">
+        <ion-item-option color="warning"
+          (click)="cambiarEstado(cuenta, cuenta.estado === 'Activa' ? 'Bloqueada' : 'Activa')">
+          <ion-icon slot="icon-only" [name]="cuenta.estado === 'Activa' ? 'lock-closed-outline' : 'lock-open-outline'">
           </ion-icon>
         </ion-item-option>
         <ion-item-option color="danger" (click)="cambiarEstado(cuenta, 'Cerrada')">

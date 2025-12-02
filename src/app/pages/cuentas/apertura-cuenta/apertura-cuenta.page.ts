@@ -2,10 +2,10 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { 
-  IonicModule, 
-  ModalController, 
-  ToastController 
+import {
+  IonicModule,
+  ModalController,
+  ToastController
 } from '@ionic/angular';
 import { AuthService, Usuario } from '../../../services/auth'; // Importar Usuario
 import { CuentasService } from '../../../services/cuentas.service';
@@ -19,7 +19,7 @@ import { CuentasService } from '../../../services/cuentas.service';
 })
 export class AperturaCuentaPage implements OnInit {
   @Input() clientes: any[] = [];
-  
+
   datosCuenta = {
     clienteId: null as number | null,
     tipoCuenta: '',
@@ -27,10 +27,10 @@ export class AperturaCuentaPage implements OnInit {
     saldoInicial: 0,
     alias: ''
   };
-  
+
   tiposCuenta = ['Ahorros', 'Corriente', 'Inversión', 'Plazo fijo'];
   monedas = ['CRC', 'USD'];
-  
+
   esAdmin = false;
   loading = false;
 
@@ -39,16 +39,19 @@ export class AperturaCuentaPage implements OnInit {
     private authService: AuthService,
     private cuentasService: CuentasService,
     private toastCtrl: ToastController
-  ) {}
+  ) { }
 
   ngOnInit() {
     const usuario: Usuario | null = this.authService.getCurrentUser();
     this.esAdmin = usuario?.rol === 'Administrador';
-    
+
     // Si es gestor, asignar el cliente del gestor
     if (usuario?.rol === 'Gestor' && usuario.clienteId) {
-      this.datosCuenta.clienteId = usuario.clienteId; // clienteId es number, no undefined
+      this.datosCuenta.clienteId = usuario.clienteId;
     }
+
+    // Cargar clientes si es admin
+    this.cargarClientesParaAdmin();
   }
 
   formularioValido(): boolean {
@@ -60,7 +63,7 @@ export class AperturaCuentaPage implements OnInit {
         this.datosCuenta.saldoInicial >= 0
       );
     }
-    
+
     // Si es admin, necesita seleccionar cliente
     return (
       (this.esAdmin ? !!this.datosCuenta.clienteId : true) &&
@@ -88,14 +91,14 @@ export class AperturaCuentaPage implements OnInit {
       };
 
       const resultado: any = await this.cuentasService.abrirCuenta(datosParaEnviar).toPromise();
-      
+
       if (resultado && resultado.success) {
         this.mostrarToast(resultado.mensaje || 'Cuenta abierta exitosamente', 'success');
         this.modalCtrl.dismiss({ success: true, cuenta: resultado.cuenta });
       } else {
         this.mostrarToast(resultado?.mensaje || 'Error al abrir cuenta', 'danger');
       }
-      
+
     } catch (error: any) {
       console.error('Error al abrir cuenta:', error);
       const mensaje = error.error?.mensaje || error.message || 'Error al abrir cuenta';
@@ -104,6 +107,23 @@ export class AperturaCuentaPage implements OnInit {
       this.loading = false;
     }
   }
+
+  async cargarClientesParaAdmin() {
+    if (this.esAdmin) {
+      try {
+        // Si no se pasaron clientes, cargarlos desde el servicio
+        if (!this.clientes || this.clientes.length === 0) {
+          const clientesData: any = await this.authService.getClientes().toPromise();
+          this.clientes = clientesData || [];
+          console.log('Clientes cargados para admin:', this.clientes);
+        }
+      } catch (error) {
+        console.error('Error cargando clientes:', error);
+        this.clientes = [];
+      }
+    }
+  }
+
 
   cancelar() {
     this.modalCtrl.dismiss({ success: false });

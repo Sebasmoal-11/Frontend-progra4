@@ -1,6 +1,6 @@
 <ion-content>
   <div class="dashboard-container">
-    
+
     <!-- Banner de bienvenida -->
     <ion-card>
       <ion-card-header>
@@ -9,6 +9,13 @@
         </ion-card-title>
         <ion-card-subtitle>{{ fechaActual | date:'fullDate' }}</ion-card-subtitle>
       </ion-card-header>
+      <ion-toolbar>
+      <ion-buttons slot="end">
+        <ion-button (click)="logout()">
+          <ion-icon name="log-out-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+      </ion-toolbar>
     </ion-card>
 
     <!-- Estadísticas -->
@@ -28,7 +35,7 @@
             </ion-card-content>
           </ion-card>
         </ion-col>
-        
+
         <ion-col size="12" size-md="6">
           <ion-card>
             <ion-card-header>
