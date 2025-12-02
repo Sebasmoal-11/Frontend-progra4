@@ -17,15 +17,15 @@ export interface Usuario {
 
 export interface Cuenta {
   cuentaId: number;
-  numeroCuenta: string;
-  tipoCuenta: string;  // En tu BD es TipoCuenta (enum)
-  moneda: string;      // En tu BD es Moneda (enum)
+  numeroCuenta: string;  
+  tipoCuenta: number;  
+  moneda: number;
   saldo: number;
-  estadoCuenta: string; // En tu BD es EstadoCuenta (enum)
+  estadoCuenta: number;
   clienteId: number;
-  fechaApertura?: string;
   alias?: string;
-  cliente?: {          // Para incluir datos del cliente
+  fechaApertura?: string;
+  cliente?: {
     nombreCompleto?: string;
     email?: string;
   };
@@ -204,10 +204,10 @@ export class AuthService {
    * Obtener todos los clientes (para admin)
    */
   getClientes(): Observable<Cliente[]> {
-    return this.http.get<Cliente[]>(`${this.apiUrl}/Cliente`).pipe(
-      catchError(error => {
-        console.error('Error obteniendo clientes:', error);
-        return of([]);
+    return this.http.get<Cliente[]>('https://localhost:7245/Cliente').pipe(
+    catchError(error => {
+      console.error('Error obteniendo clientes:', error);
+      return of([]);
       })
     );
   }

@@ -74,46 +74,59 @@ export class CuentasPage implements OnInit {
   }
 
   async cargarCuentas() {
-    this.loading = true;
+  this.loading = true;
+  console.log('Cargando cuentas...');
 
-    try {
-      if (this.esAdmin || this.esGestor) {
-        this.cuentasService.getAllCuentas().subscribe(
+  try {
+    if (this.esAdmin || this.esGestor) {
+      console.log('Usando getAllCuentas()');
+      
+      this.cuentasService.getAllCuentas().subscribe(
+        (cuentas: any[]) => {
+          console.log(`${cuentas.length} cuentas cargadas:`, cuentas);
+          this.todasLasCuentas = cuentas;
+          this.cuentas = [...cuentas];
+          this.loading = false;
+        },
+        error => {
+          console.error('Error en getAllCuentas:', error);
+          this.mostrarToast('Error cargando cuentas', 'danger');
+          this.loading = false;
+        }
+      );
+      
+    } else if (this.esCliente) {
+      console.log('👤 Usando getCuentasPorCliente()');
+      const usuario = this.authService.getCurrentUser();
+      const clienteId = usuario?.clienteId;
+      
+      if (clienteId) {
+        console.log(`Cliente ID: ${clienteId}`);
+        
+        this.cuentasService.getCuentasPorCliente(clienteId).subscribe(
           (cuentas: any[]) => {
-            this.todasLasCuentas = cuentas;
-            this.cuentas = [...cuentas];
+            console.log(`${cuentas.length} cuentas del cliente:`, cuentas);
+            this.cuentas = cuentas;
             this.loading = false;
           },
           error => {
-            console.error('Error cargando cuentas:', error);
-            this.mostrarToast('Error cargando cuentas', 'danger');
+            console.error('Error en getCuentasPorCliente:', error);
+            this.mostrarToast('Error cargando sus cuentas', 'danger');
             this.loading = false;
           }
         );
-      } else if (this.esCliente) {
-        const clienteId = this.authService.getClienteId();
-        if (clienteId) {
-          this.cuentasService.getCuentasPorCliente(clienteId).subscribe(
-            (cuentas: any[]) => {
-              this.cuentas = cuentas;
-              this.loading = false;
-            },
-            error => {
-              console.error('Error cargando cuentas:', error);
-              this.mostrarToast('Error cargando cuentas', 'danger');
-              this.loading = false;
-            }
-          );
-        } else {
-          this.cuentas = [];
-          this.loading = false;
-        }
+      } else {
+        console.log('Cliente sin ID');
+        this.cuentas = [];
+        this.loading = false;
+        this.mostrarToast('No se encontró información del cliente', 'warning');
       }
-    } catch (error) {
-      console.error('Error:', error);
-      this.loading = false;
     }
+  } catch (error) {
+    console.error('Error general:', error);
+    this.loading = false;
   }
+}
 
   // Filtrar cuentas - CORREGIDO
   aplicarFiltros() {
