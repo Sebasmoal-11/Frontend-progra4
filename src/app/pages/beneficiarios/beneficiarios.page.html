@@ -5,7 +5,8 @@
     </ion-buttons>
     <ion-title>Mis Beneficiarios</ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="nuevoBeneficiario()">
+      <!-- CAMBIA ESTO: -->
+      <ion-button (click)="agregarBeneficiario()">
         <ion-icon name="add-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
@@ -33,7 +34,8 @@
     <ion-icon name="people-outline" size="large"></ion-icon>
     <h3>No tienes beneficiarios</h3>
     <p>Agrega beneficiarios para hacer transferencias más rápido.</p>
-    <ion-button (click)="nuevoBeneficiario()" fill="outline">
+    <!-- CAMBIA ESTO TAMBIÉN: -->
+    <ion-button (click)="agregarBeneficiario()" fill="outline">
       Agregar Primer Beneficiario
     </ion-button>
   </div>

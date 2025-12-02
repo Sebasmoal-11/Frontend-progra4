@@ -3,13 +3,14 @@ import { AuthService } from '../../services/auth';
 import { CuentasService } from '../../services/cuentas.service';
 import { TransferenciasService } from '../../services/transferencias.service';
 import { BeneficiariosService } from '../../services/beneficiarios.service';
-import { Cuenta, Beneficiario, Transferencia } from '../../models/models/types';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { 
-  IonicModule, 
-  AlertController, 
-  ToastController 
+import { lastValueFrom } from 'rxjs';
+import {
+  IonicModule,
+  AlertController,
+  ToastController,
+  LoadingController
 } from '@ionic/angular';
 
 @Component({
@@ -21,9 +22,9 @@ import {
 })
 export class TransferenciasPage implements OnInit {
   segment = 'nueva';
-  cuentas: Cuenta[] = [];
-  beneficiarios: Beneficiario[] = [];
-  historialTransferencias: Transferencia[] = [];
+  cuentas: any[] = []; // Cambiado a any[]
+  beneficiarios: any[] = []; // Cambiado a any[]
+  historialTransferencias: any[] = []; // Cambiado a any[]
 
   tipoDestino = 'propia';
   loading = false;
@@ -49,7 +50,8 @@ export class TransferenciasPage implements OnInit {
     private transferenciasService: TransferenciasService,
     private beneficiariosService: BeneficiariosService,
     private alertCtrl: AlertController,
-    private toastCtrl: ToastController
+    private toastCtrl: ToastController,
+    private loadingCtrl: LoadingController
   ) { }
 
   async ngOnInit() {
@@ -58,33 +60,31 @@ export class TransferenciasPage implements OnInit {
 
   async cargarDatos() {
     this.loading = true;
-    
+
     try {
-      const clienteId = this.authService.getClienteId();
-      
-      if (clienteId) {
-        // 1. Cargar cuentas del cliente
-        const cuentasResult = await this.cuentasService.getCuentasPorCliente(clienteId).toPromise();
-        this.cuentas = cuentasResult || [];
-        
-        // 2. Cargar beneficiarios del cliente
-        const beneficiariosResult = await this.beneficiariosService.obtenerBeneficiarios().toPromise();
-        this.beneficiarios = beneficiariosResult || [];
-        
-        // 3. Cargar transferencias del cliente
-        const transferenciasResult = await this.transferenciasService.obtenerTransferencias(clienteId).toPromise();
-        this.historialTransferencias = transferenciasResult || [];
-      } else {
-        // Si no hay clienteId, arrays vacíos
-        this.cuentas = [];
-        this.beneficiarios = [];
-        this.historialTransferencias = [];
-        this.mostrarToast('No se pudo identificar al cliente', 'warning');
+      const usuario = this.authService.getCurrentUser();
+      const clienteId = usuario?.clienteId;
+
+      if (!clienteId) {
+        throw new Error('No se pudo obtener el ID del cliente');
       }
-      
-    } catch (error) {
+
+      // Cargar cuentas
+      const cuentasResult = await this.cuentasService.getCuentasPorCliente(clienteId).toPromise();
+      this.cuentas = cuentasResult || [];
+
+      // Cargar beneficiarios - CORREGIDO: pasando clienteId
+      const beneficiariosResult = await this.beneficiariosService.obtenerBeneficiarios(clienteId).toPromise();
+      this.beneficiarios = beneficiariosResult || [];
+
+      // Cargar historial de transferencias
+      const transferenciasResult = await this.transferenciasService.obtenerTransferencias(clienteId).toPromise();
+      this.historialTransferencias = transferenciasResult || [];
+
+    } catch (error: any) {
       console.error('Error cargando datos:', error);
-      this.mostrarToast('Error cargando datos', 'danger');
+      this.mostrarToast(error.message || 'Error cargando datos', 'danger');
+      // Limpiar arrays si hay error
       this.cuentas = [];
       this.beneficiarios = [];
       this.historialTransferencias = [];
@@ -92,6 +92,7 @@ export class TransferenciasPage implements OnInit {
       this.loading = false;
     }
   }
+
 
   cambiarTipoDestino() {
     this.transferencia.cuentaDestinoId = null;
@@ -121,6 +122,7 @@ export class TransferenciasPage implements OnInit {
   }
 
   async crearTransferencia() {
+    // Validaciones básicas
     if (!this.formularioValido()) {
       if (this.tipoDestino === 'propia' && this.transferencia.cuentaOrigenId === this.transferencia.cuentaDestinoId) {
         this.mostrarToast('No puede transferir a la misma cuenta', 'warning');
@@ -130,10 +132,17 @@ export class TransferenciasPage implements OnInit {
       return;
     }
 
+    // Verificar saldo (validación adicional)
+    const cuentaOrigen = this.cuentas.find(c => c.cuentaId === this.transferencia.cuentaOrigenId);
+    if (cuentaOrigen && this.transferencia.monto > cuentaOrigen.saldo) {
+      this.mostrarToast('Saldo insuficiente en la cuenta origen', 'warning');
+      return;
+    }
+
     // Confirmar antes de proceder
     const confirmAlert = await this.alertCtrl.create({
       header: 'Confirmar Transferencia',
-      message: `¿Está seguro de transferir ${this.transferencia.monto} ${this.transferencia.moneda}?`,
+      message: `¿Está seguro de transferir ₡${this.transferencia.monto.toLocaleString()} ${this.transferencia.moneda}?`,
       buttons: [
         {
           text: 'Cancelar',
@@ -147,12 +156,15 @@ export class TransferenciasPage implements OnInit {
         }
       ]
     });
-    
+
     await confirmAlert.present();
   }
 
   private async ejecutarTransferencia() {
-    this.loading = true;
+    const loading = await this.loadingCtrl.create({
+      message: 'Procesando transferencia...'
+    });
+    await loading.present();
 
     try {
       // Preparar datos según tipo de destino
@@ -161,7 +173,7 @@ export class TransferenciasPage implements OnInit {
         monto: this.transferencia.monto,
         moneda: this.transferencia.moneda,
         esProgramada: this.transferencia.esProgramada,
-        fechaEjecucion: this.transferencia.esProgramada ? this.transferencia.fechaEjecucion : new Date().toISOString(),
+        fechaEjecucion: this.transferencia.fechaEjecucion,
         idempotencyKey: this.transferencia.idempotencyKey,
         descripcion: this.transferencia.descripcion || 'Transferencia'
       };
@@ -172,26 +184,29 @@ export class TransferenciasPage implements OnInit {
         datosTransferencia.terceroBeneficiarioId = this.transferencia.terceroBeneficiarioId;
       }
 
-      const resultado = await this.transferenciasService.crearTransferencia(datosTransferencia).toPromise();
-      
+      // Usa lastValueFrom en lugar de toPromise()
+      const resultado = await lastValueFrom(
+        this.transferenciasService.crearTransferencia(datosTransferencia)
+      );
+
+      await loading.dismiss();
       this.mostrarToast('Transferencia creada exitosamente', 'success');
       this.limpiarFormulario();
       await this.cargarDatos(); // Recargar historial
       this.segment = 'historial';
-      
+
     } catch (error: any) {
+      await loading.dismiss();
       console.error('Error creando transferencia:', error);
       const mensaje = error.error?.mensaje || error.message || 'Error creando transferencia';
       this.mostrarToast(mensaje, 'danger');
-    } finally {
-      this.loading = false;
     }
   }
 
   async cancelarTransferencia(id: number) {
     const alert = await this.alertCtrl.create({
       header: 'Confirmar Cancelación',
-      message: '¿Está seguro de cancelar esta transferencia?',
+      message: '¿Está seguro de cancelar esta transferencia programada?',
       buttons: [
         {
           text: 'Cancelar',
@@ -200,11 +215,18 @@ export class TransferenciasPage implements OnInit {
         {
           text: 'Confirmar',
           handler: async () => {
+            const loading = await this.loadingCtrl.create({
+              message: 'Cancelando transferencia...'
+            });
+            await loading.present();
+
             try {
               await this.transferenciasService.cancelarTransferencia(id).toPromise();
-              this.mostrarToast('Transferencia cancelada', 'success');
+              await loading.dismiss();
+              this.mostrarToast('Transferencia cancelada exitosamente', 'success');
               await this.cargarDatos(); // Recargar historial
             } catch (error: any) {
+              await loading.dismiss();
               console.error('Error cancelando transferencia:', error);
               const mensaje = error.error?.mensaje || error.message || 'Error cancelando transferencia';
               this.mostrarToast(mensaje, 'danger');
@@ -213,7 +235,7 @@ export class TransferenciasPage implements OnInit {
         }
       ]
     });
-    
+
     await alert.present();
   }
 
@@ -248,40 +270,15 @@ export class TransferenciasPage implements OnInit {
     await toast.present();
   }
 
-  // Método para formatear fecha
-  formatearFecha(fecha: string): string {
-    return new Date(fecha).toLocaleDateString('es-CR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  // Método para obtener nombre de cuenta por ID
+  obtenerNombreCuenta(cuentaId: number): string {
+    const cuenta = this.cuentas.find(c => c.cuentaId === cuentaId);
+    return cuenta ? `${cuenta.numero} - ${cuenta.tipo}` : 'Cuenta no encontrada';
   }
 
-  // Método para obtener estado de transferencia
-  obtenerEstadoTransferencia(estado: string): string {
-    const estados: {[key: string]: string} = {
-      'PendienteAprobacion': 'Pendiente Aprobación',
-      'Programada': 'Programada',
-      'Exitosa': 'Exitosa',
-      'Fallida': 'Fallida',
-      'Cancelada': 'Cancelada',
-      'Rechazada': 'Rechazada'
-    };
-    return estados[estado] || estado;
-  }
-
-  // Color por estado
-  colorEstado(estado: string): string {
-    switch (estado) {
-      case 'Exitosa': return 'success';
-      case 'PendienteAprobacion':
-      case 'Programada': return 'warning';
-      case 'Fallida':
-      case 'Rechazada': return 'danger';
-      case 'Cancelada': return 'medium';
-      default: return 'primary';
-    }
+  // Método para obtener nombre de beneficiario por ID
+  obtenerNombreBeneficiario(beneficiarioId: number): string {
+    const beneficiario = this.beneficiarios.find(b => b.terceroBeneficiarioId === beneficiarioId);
+    return beneficiario ? `${beneficiario.alias} - ${beneficiario.numeroCuenta}` : 'Beneficiario no encontrado';
   }
 }

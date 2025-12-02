@@ -178,7 +178,7 @@ private async asignarClienteId(usuario: any): Promise<void> {
         rol: this.extractRoleFromToken(payload)
       };
       
-      console.log('👤 Usuario extraído del token:', usuario);
+      console.log('Usuario extraído del token:', usuario);
       return usuario;
       
     } catch (error) {
