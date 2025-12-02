@@ -1,35 +1,51 @@
-// src/app/services/auth.ts
+// src/app/services/auth.service.ts - VERSIÓN COMPLETA BD REAL
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { map, catchError } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
 
 export interface Usuario {
-  id: number;
+  usuarioId: number;
   email: string;
-  password: string;
-  nombre: string;
   rol: string;
-  identificacion: string;
-  telefono: string;
-  fechaRegistro: string;
-  cuentas: Cuenta[];
-  beneficiarios: Beneficiario[];
+  nombreCompleto?: string;
+  clienteId?: number;
+  token?: string;
 }
 
 export interface Cuenta {
-  id: string;
-  numero: string;
-  tipo: string;
-  moneda: string;
+  cuentaId: number;
+  numeroCuenta: string;
+  tipoCuenta: string;  // En tu BD es TipoCuenta (enum)
+  moneda: string;      // En tu BD es Moneda (enum)
   saldo: number;
-  alias: string;
+  estadoCuenta: string; // En tu BD es EstadoCuenta (enum)
+  clienteId: number;
+  fechaApertura?: string;
+  alias?: string;
+  cliente?: {          // Para incluir datos del cliente
+    nombreCompleto?: string;
+    email?: string;
+  };
 }
 
-export interface Beneficiario {
-  id: number;
-  nombre: string;
-  cuenta: string;
-  banco: string;
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  token: string;
+}
+
+export interface Cliente {
+  clienteId: number;
+  nombreCompleto: string;
+  email: string;
+  identificacion: string;
+  telefono: string;
 }
 
 @Injectable({
@@ -38,222 +54,237 @@ export interface Beneficiario {
 export class AuthService {
   private isAuthenticated = new BehaviorSubject<boolean>(false);
   authStatus = this.isAuthenticated.asObservable();
+  private apiUrl = 'https://localhost:7245/api';
 
-  // USUARIOS LOCALES COMPLETOS
-  private usuariosLocales: Usuario[] = [
-    {
-      id: 1,
-      email: 'admin@banco.com',
-      password: 'admin123',
-      nombre: 'Administrador Sistema',
-      rol: 'Administrador',
-      identificacion: '101110111',
-      telefono: '8888-8888',
-      fechaRegistro: '2024-01-01',
-      cuentas: [
-        {
-          id: '001-123456-1',
-          numero: '1234567890',
-          tipo: 'Ahorros',
-          moneda: 'CRC',
-          saldo: 1250000,
-          alias: 'Cuenta Principal'
-        },
-        {
-          id: '001-123456-2',
-          numero: '0987654321',
-          tipo: 'Corriente',
-          moneda: 'USD',
-          saldo: 15000,
-          alias: 'Cuenta Dólares'
-        }
-      ],
-      beneficiarios: [
-        { id: 1, nombre: 'María López', cuenta: '002-987654-1', banco: 'BAC' },
-        { id: 2, nombre: 'Carlos Rojas', cuenta: '001-555555-1', banco: 'BCR' }
-      ]
-    },
-    {
-      id: 2,
-      email: 'cliente@banco.com',
-      password: 'cliente123',
-      nombre: 'Juan Carlos Pérez',
-      rol: 'Cliente',
-      identificacion: '202220222',
-      telefono: '8881-1111',
-      fechaRegistro: '2024-02-15',
-      cuentas: [
-        {
-          id: '001-654321-1',
-          numero: '6543210987',
-          tipo: 'Ahorros',
-          moneda: 'CRC',
-          saldo: 750000,
-          alias: 'Ahorro Navidad'
-        },
-        {
-          id: '001-654321-2',
-          numero: '1122334455',
-          tipo: 'Corriente',
-          moneda: 'CRC',
-          saldo: 250000,
-          alias: 'Cuenta Diaria'
-        }
-      ],
-      beneficiarios: [
-        { id: 1, nombre: 'Ana Martínez', cuenta: '001-444444-1', banco: 'BN' },
-        { id: 2, nombre: 'Roberto Solís', cuenta: '002-777777-2', banco: 'BAC' }
-      ]
-    },
-    {
-      id: 3,
-      email: 'gestor@banco.com',
-      password: 'gestor123',
-      nombre: 'María Rodríguez',
-      rol: 'Gestor',
-      identificacion: '303330333',
-      telefono: '8882-2222',
-      fechaRegistro: '2024-03-10',
-      cuentas: [
-        {
-          id: '001-999999-1',
-          numero: '9999999999',
-          tipo: 'Ahorros',
-          moneda: 'CRC',
-          saldo: 2000000,
-          alias: 'Fondo Emergencia'
-        }
-      ],
-      beneficiarios: [
-        { id: 1, nombre: 'Sofía Vargas', cuenta: '001-888888-3', banco: 'BCR' }
-      ]
-    },
-    {
-      id: 4,
-      email: 'test@test.com',
-      password: 'test123',
-      nombre: 'Usuario de Prueba',
-      rol: 'Cliente',
-      identificacion: '404440444',
-      telefono: '8883-3333',
-      fechaRegistro: '2024-04-01',
-      cuentas: [
-        {
-          id: '001-888888-1',
-          numero: '8888888888',
-          tipo: 'Ahorros',
-          moneda: 'CRC',
-          saldo: 500000,
-          alias: 'Cuenta Estudiante'
-        },
-        {
-          id: '001-888888-2',
-          numero: '7777777777',
-          tipo: 'Corriente',
-          moneda: 'USD',
-          saldo: 5000,
-          alias: 'Ahorro USD'
-        }
-      ],
-      beneficiarios: [
-        { id: 1, nombre: 'Pedro González', cuenta: '001-333333-4', banco: 'BN' },
-        { id: 2, nombre: 'Laura Chaves', cuenta: '002-666666-5', banco: 'BAC' }
-      ]
-    }
-  ];
-
-  // HISTORIAL DE TRANSACCIONES
-  private transaccionesLocales = [
-    { id: 1, usuarioId: 2, fecha: '2024-11-15', tipo: 'Transferencia', cuentaOrigen: '6543210987', cuentaDestino: '4444444444', monto: 50000, descripcion: 'Pago colegio', estado: 'Completada' },
-    { id: 2, usuarioId: 2, fecha: '2024-11-10', tipo: 'Pago Servicio', cuentaOrigen: '6543210987', servicio: 'Electricidad', monto: 35000, descripcion: 'CNFL', estado: 'Completada' },
-    { id: 3, usuarioId: 2, fecha: '2024-11-05', tipo: 'Depósito', cuentaOrigen: '1122334455', monto: 100000, descripcion: 'Depósito efectivo', estado: 'Completada' },
-    { id: 4, usuarioId: 2, fecha: '2024-11-01', tipo: 'Retiro', cuentaOrigen: '1122334455', monto: 50000, descripcion: 'Cajero automático', estado: 'Completada' },
-    { id: 5, usuarioId: 2, fecha: '2024-10-28', tipo: 'Transferencia', cuentaOrigen: '6543210987', cuentaDestino: '7777777777', monto: 75000, descripcion: 'Préstamo amigo', estado: 'Completada' }
-  ];
-
-  constructor(private router: Router) {
-    console.log('AuthService inicializado');
+  constructor(
+    private http: HttpClient,
+    private router: Router
+  ) {
     this.checkAuthStatus();
   }
 
-  /**
-   * Método principal de login
-   */
+  // ==================== LOGIN ====================
   async login(email: string, password: string): Promise<boolean> {
-    console.log('Login intentado:', email);
+    console.log('🔐 Iniciando sesión para:', email);
 
-    // Buscar en usuarios locales
-    const usuario = this.usuariosLocales.find(u =>
-      u.email.toLowerCase() === email.toLowerCase() &&
-      u.password === password
-    );
-
-    if (usuario) {
-      console.log('Login LOCAL exitoso:', usuario.nombre);
-      return this.loginLocal(usuario);
-    }
-
-    console.log(' Credenciales incorrectas');
-    this.mostrarErrorLogin();
-    return false;
-  }
-
-  /**
-   * Login con usuario local
-   */
-  private loginLocal(usuario: Usuario): boolean {
     try {
-      // Crear token simulado
-      const tokenData = {
-        usuarioId: usuario.id,
-        email: usuario.email,
-        rol: usuario.rol,
-        nombre: usuario.nombre,
-        exp: Date.now() + 24 * 60 * 60 * 1000
-      };
+      // 1. Hacer login al backend
+      const loginData: LoginRequest = { email, password };
 
-      const fakeToken = btoa(JSON.stringify(tokenData));
+      const response = await this.http.post<LoginResponse>(
+        `${this.apiUrl}/Autenticacion/login`,
+        loginData
+      ).toPromise();
 
-      // Guardar en localStorage
-      localStorage.setItem('token', fakeToken);
+      if (!response || !response.token) {
+        console.error('No se recibió token en la respuesta');
+        return false;
+      }
+
+      console.log('Token JWT recibido correctamente');
+
+      // 2. Guardar token en localStorage
+      localStorage.setItem('token', response.token);
+
+      // 3. Extraer datos del usuario del token JWT
+      const usuario = this.extractUserFromToken(response.token, email);
+
+      // 4. Guardar usuario en localStorage
       localStorage.setItem('usuario', JSON.stringify(usuario));
-      localStorage.setItem('cuentas', JSON.stringify(usuario.cuentas));
-      localStorage.setItem('beneficiarios', JSON.stringify(usuario.beneficiarios));
-      localStorage.setItem('usuarioId', usuario.id.toString());
 
+      // 5. Actualizar estado de autenticación
       this.isAuthenticated.next(true);
 
-      // Redirigir
-      setTimeout(() => {
-        this.router.navigate(['/dashboard']);
-      }, 500);
+      // 6. Redirigir al dashboard
+      this.router.navigate(['/dashboard']);
 
       return true;
-    } catch (error) {
-      console.error('Error en login local:', error);
+
+    } catch (error: any) {
+      console.error('Error en login:', error);
+
+      // Manejo específico de errores HTTP
+      if (error.status === 401) {
+        console.error('Credenciales incorrectas');
+      } else if (error.status === 0) {
+        console.error('No se puede conectar al servidor. Verifique que el backend esté corriendo.');
+      } else if (error.status === 404) {
+        console.error('Endpoint no encontrado. Verifique la URL.');
+      }
+
       return false;
     }
   }
 
+   // ==================== MÉTODOS PRIVADOS PARA MANEJO DE JWT ====================
+  
   /**
-   * Cierra sesión
+   * Extrae la información del usuario del token JWT
    */
-  logout(): void {
-    localStorage.removeItem('token');
-    localStorage.removeItem('usuario');
-    localStorage.removeItem('cuentas');
-    localStorage.removeItem('beneficiarios');
-    localStorage.removeItem('usuarioId');
-
-    this.isAuthenticated.next(false);
-    this.router.navigate(['/login']);
-
-    console.log('Sesión cerrada');
+  private extractUserFromToken(token: string, email: string): Usuario {
+    try {
+      // Decodificar el payload del JWT
+      const payload = this.decodeJwtPayload(token);
+      
+      // Crear objeto usuario con los datos del token
+      const usuario: Usuario = {
+        usuarioId: payload.UsuarioId || parseInt(payload.UsuarioId) || 0,
+        email: payload.Email || email,
+        rol: this.extractRoleFromToken(payload)
+      };
+      
+      console.log('👤 Usuario extraído del token:', usuario);
+      return usuario;
+      
+    } catch (error) {
+      console.error('Error extrayendo usuario del token:', error);
+      
+      // Si falla la extracción, crear usuario mínimo para desarrollo
+      return {
+        usuarioId: 1,
+        email: email,
+        rol: 'Administrador'
+      };
+    }
   }
 
   /**
-   * Verifica autenticación
+   * Decodifica el payload de un token JWT
    */
+  private decodeJwtPayload(token: string): any {
+    try {
+      // El token JWT tiene formato: header.payload.signature
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        throw new Error('Token JWT con formato incorrecto');
+      }
+      
+      const payloadBase64 = parts[1];
+      
+      // Decodificar base64 (manejar caracteres URL-safe)
+      const base64 = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+      const payloadJson = atob(base64);
+      
+      return JSON.parse(payloadJson);
+    } catch (error) {
+      console.error('Error decodificando JWT:', error);
+      throw new Error('Token JWT inválido');
+    }
+  }
+
+  /**
+   * Extrae el rol del usuario del payload del token
+   */
+  private extractRoleFromToken(payload: any): string {
+    // En .NET, el rol puede venir en diferentes propiedades
+    const possibleRolePaths = [
+      payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'], // Claim estándar de .NET
+      payload.role,
+      payload.Role,
+      payload.rol,
+      payload.Rol,
+      payload['Role']
+    ];
+    
+    // Buscar el primer valor que exista
+    for (const role of possibleRolePaths) {
+      if (role) {
+        console.log(`Rol encontrado en claim: ${role}`);
+        return role;
+      }
+    }
+    
+    console.warn('No se encontró rol en el token, usando valor por defecto');
+    return 'Cliente'; // Valor por defecto
+  }
+
+  // ==================== MÉTODOS PARA OBTENER DATOS DE BD ====================
+
+  /**
+   * Obtener todos los clientes (para admin)
+   */
+  getClientes(): Observable<Cliente[]> {
+    return this.http.get<Cliente[]>(`${this.apiUrl}/Cliente`).pipe(
+      catchError(error => {
+        console.error('Error obteniendo clientes:', error);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Obtener todas las cuentas (para admin/gestor)
+   */
+  getAllCuentas(): Observable<Cuenta[]> {
+    return this.http.get<Cuenta[]>(`${this.apiUrl}/Cuenta`).pipe(
+      catchError(error => {
+        console.error('Error obteniendo todas las cuentas:', error);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Obtener cuentas por cliente ID
+   */
+  getCuentasPorCliente(clienteId: number): Observable<Cuenta[]> {
+    return this.http.get<Cuenta[]>(`${this.apiUrl}/Cuenta/PorCliente/${clienteId}`).pipe(
+      catchError(error => {
+        console.error('Error obteniendo cuentas del cliente:', error);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Abrir nueva cuenta
+   */
+  abrirCuenta(datos: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/Cuenta`, datos).pipe(
+      catchError(error => {
+        console.error('Error abriendo cuenta:', error);
+        throw error;
+      })
+    );
+  }
+
+  /**
+   * Cambiar estado de cuenta
+   */
+  cambiarEstadoCuenta(cuentaId: number, estado: string): Observable<any> {
+    return this.http.put(`${this.apiUrl}/Cuenta/${cuentaId}/estado`, { estado }).pipe(
+      catchError(error => {
+        console.error('Error cambiando estado de cuenta:', error);
+        throw error;
+      })
+    );
+  }
+
+  // ==================== MÉTODOS AUXILIARES ====================
+
+  private redirectByRole(rol: string): void {
+    setTimeout(() => {
+      switch (rol.toUpperCase()) {
+        case 'ADMINISTRADOR':
+          this.router.navigate(['/admin-dashboard']);
+          break;
+        case 'GESTOR':
+          this.router.navigate(['/gestor-dashboard']);
+          break;
+        case 'CLIENTE':
+        default:
+          this.router.navigate(['/dashboard']);
+      }
+    }, 500);
+  }
+
+  logout(): void {
+    localStorage.removeItem('token');
+    localStorage.removeItem('usuario');
+    this.isAuthenticated.next(false);
+    this.router.navigate(['/login']);
+  }
+
   checkAuthStatus(): boolean {
     const token = localStorage.getItem('token');
     const isAuth = !!token;
@@ -261,27 +292,19 @@ export class AuthService {
     return isAuth;
   }
 
-  /**
-   * Obtiene usuario actual
-   */
   getCurrentUser(): Usuario | null {
-    const userStr = localStorage.getItem('usuario');
-    if (!userStr) return null;
-
+    const usuarioStr = localStorage.getItem('usuario');
+    if (!usuarioStr) return null;
     try {
-      return JSON.parse(userStr);
+      return JSON.parse(usuarioStr);
     } catch {
       return null;
     }
   }
 
-  /**
-   * Obtiene cuentas del usuario
-   */
   getUserCuentas(): Cuenta[] {
     const cuentasStr = localStorage.getItem('cuentas');
     if (!cuentasStr) return [];
-
     try {
       return JSON.parse(cuentasStr);
     } catch {
@@ -289,166 +312,21 @@ export class AuthService {
     }
   }
 
-  /**
-   * Obtiene beneficiarios
-   */
-  getUserBeneficiarios(): Beneficiario[] {
-    const benefStr = localStorage.getItem('beneficiarios');
-    if (!benefStr) return [];
-
-    try {
-      return JSON.parse(benefStr);
-    } catch {
-      return [];
-    }
+  getToken(): string | null {
+    return localStorage.getItem('token');
   }
 
-  /**
-   * Obtiene historial
-   */
-  getHistorialTransacciones(usuarioId?: number): any[] {
-    const id = usuarioId || this.getCurrentUser()?.id;
-    if (!id) return [];
-
-    return this.transaccionesLocales.filter(t => t.usuarioId === id);
-  }
-
-  /**
-   * Obtiene usuarios demo para login page
-   */
-  getUsuariosDemo(): any[] {
-    return this.usuariosLocales.map(u => ({
-      email: u.email,
-      password: u.password,
-      nombre: u.nombre,
-      rol: u.rol,
-      cuentas: u.cuentas.length
-    }));
-  }
-
-  /**
-   * Simula transferencia
-   */
-  simularTransferencia(datos: any): Promise<any> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const usuario = this.getCurrentUser();
-        if (!usuario) {
-          resolve({ success: false, mensaje: 'Usuario no autenticado' });
-          return;
-        }
-
-        const nuevaTransaccion = {
-          id: Date.now(),
-          usuarioId: usuario.id, // ← AQUÍ ASEGURAMOS QUE SEA NUMBER
-          fecha: new Date().toISOString().split('T')[0],
-          tipo: 'Transferencia',
-          cuentaOrigen: datos.cuentaOrigen,
-          cuentaDestino: datos.cuentaDestino,
-          monto: datos.monto,
-          descripcion: datos.descripcion || 'Transferencia',
-          estado: 'Completada'
-        };
-
-        // Agregar al historial
-        this.transaccionesLocales.unshift(nuevaTransaccion);
-
-        resolve({
-          success: true,
-          mensaje: 'Transferencia completada exitosamente',
-          comprobante: `COMP-${Date.now()}`,
-          transaccion: nuevaTransaccion
-        });
-      }, 1500);
-    });
-  }
-
-
-  /**
-   * Simula pago
-   */
-  simularPagoServicio(datos: any): Promise<any> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const usuario = this.getCurrentUser();
-        if (!usuario) {
-          resolve({ success: false, mensaje: 'Usuario no autenticado' });
-          return;
-        }
-
-        const nuevaTransaccion = {
-          id: Date.now(),
-          usuarioId: usuario.id, // ← AQUÍ ASEGURAMOS QUE SEA NUMBER
-          fecha: new Date().toISOString().split('T')[0],
-          tipo: 'Pago Servicio',
-          cuentaOrigen: datos.cuentaOrigen,
-          servicio: datos.servicio,
-          referencia: datos.referencia,
-          monto: datos.monto,
-          descripcion: `Pago de ${datos.servicio}`,
-          estado: 'Completada'
-        };
-
-        this.transaccionesLocales.unshift(nuevaTransaccion);
-
-        resolve({
-          success: true,
-          mensaje: 'Pago realizado exitosamente',
-          comprobante: `PAGO-${Date.now()}`,
-          transaccion: nuevaTransaccion
-        });
-      }, 1500);
-    });
-  }
-
-  /**
-   * Agrega beneficiario
-   */
-  agregarBeneficiario(beneficiario: any): Promise<any> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const beneficiarios = this.getUserBeneficiarios();
-
-        const nuevoBeneficiario = {
-          id: Date.now(),
-          ...beneficiario
-        };
-
-        beneficiarios.push(nuevoBeneficiario);
-        localStorage.setItem('beneficiarios', JSON.stringify(beneficiarios));
-
-        resolve({
-          success: true,
-          mensaje: 'Beneficiario agregado',
-          beneficiario: nuevoBeneficiario
-        });
-      }, 1000);
-    });
-  }
-
-  /**
-   * Muestra error
-   */
-  private mostrarErrorLogin(): void {
-    alert('Credenciales incorrectas.\n\nUsuarios de prueba:\n' +
-      '• admin@banco.com / admin123\n' +
-      '• cliente@banco.com / cliente123\n' +
-      '• gestor@banco.com / gestor123\n' +
-      '• test@test.com / test123'
-    );
-  }
-
-  /**
-   * Verifica si está autenticado
-   */
   isLoggedIn(): boolean {
     return this.isAuthenticated.value;
   }
 
-  /**
-   * Obtiene token
-   */
-  getToken(): string | null {
-    return localStorage.getItem('token');
+  getUserRole(): string {
+    const usuario = this.getCurrentUser();
+    return usuario?.rol || '';
+  }
+
+  getClienteId(): number | null {
+    const usuario = this.getCurrentUser();
+    return usuario?.clienteId || null;
   }
 }

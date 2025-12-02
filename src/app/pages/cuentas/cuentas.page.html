@@ -1,28 +1,214 @@
+<!-- src/app/pages/cuentas/cuentas.page.html -->
 <ion-header>
-  <ion-toolbar>
+  <ion-toolbar color="primary">
     <ion-buttons slot="start">
-      <ion-back-button></ion-back-button>
+      <ion-back-button defaultHref="/dashboard"></ion-back-button>
     </ion-buttons>
-    <ion-title>Mis Cuentas</ion-title>
+    <ion-title>Cuentas Bancarias</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="abrirNuevaCuenta()" *ngIf="esAdmin || esGestor">
+        <ion-icon slot="icon-only" name="add-outline"></ion-icon>
+      </ion-button>
+      <ion-button (click)="limpiarFiltros()">
+        <ion-icon slot="icon-only" name="refresh-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+
+  <!-- Barra de filtros -->
+  <ion-toolbar>
+    <ion-searchbar 
+      [(ngModel)]="filtro.searchTerm"
+      (ionInput)="aplicarFiltros()"
+      placeholder="Buscar cuenta, alias..."
+      debounce="300"
+    ></ion-searchbar>
   </ion-toolbar>
 </ion-header>
 
 <ion-content>
-  <ion-list>
-    <ion-item *ngFor="let cuenta of cuentas">
-      <ion-label>
-        <h2>{{ cuenta.numeroCuenta }}</h2>
-        <p>Tipo: {{ cuenta.tipoCuenta }} | Moneda: {{ cuenta.moneda }}</p>
-        <p><strong>Saldo: ₡{{ cuenta.saldo | number }}</strong></p>
-        <ion-badge [color]="getEstadoColor(cuenta.estadoCuenta)">
-          {{ cuenta.estadoCuenta }}
-        </ion-badge>
-      </ion-label>
-    </ion-item>
-  </ion-list>
+  <!-- Encabezado con resumen -->
+  <ion-card *ngIf="!esAdmin && !esGestor">
+    <ion-card-header>
+      <ion-card-title>Resumen de Cuentas</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-grid>
+        <ion-row>
+          <ion-col>
+            <h3>Total Cuentas</h3>
+            <p style="font-size: 24px; font-weight: bold;">{{ cuentas.length }}</p>
+          </ion-col>
+          <ion-col>
+            <h3>Saldo Total</h3>
+            <p style="font-size: 24px; font-weight: bold; color: green;">
+              {{ formatoMoneda(calcularSaldoTotal(), 'CRC') }}
+            </p>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </ion-card-content>
+  </ion-card>
 
-  <div *ngIf="loading" class="ion-text-center ion-padding">
-    <ion-spinner></ion-spinner>
+  <!-- Filtros avanzados -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Filtros</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-grid>
+        <ion-row>
+          <ion-col size="12" size-md="4">
+            <ion-item>
+              <ion-label>Tipo</ion-label>
+              <ion-select 
+                [(ngModel)]="filtro.tipo" 
+                (ionChange)="aplicarFiltros()"
+                interface="popover"
+              >
+                <ion-select-option value="">Todos</ion-select-option>
+                <ion-select-option value="Ahorros">Ahorros</ion-select-option>
+                <ion-select-option value="Corriente">Corriente</ion-select-option>
+                <ion-select-option value="Inversión">Inversión</ion-select-option>
+                <ion-select-option value="Plazo fijo">Plazo fijo</ion-select-option>
+              </ion-select>
+            </ion-item>
+          </ion-col>
+          <ion-col size="12" size-md="4">
+            <ion-item>
+              <ion-label>Moneda</ion-label>
+              <ion-select 
+                [(ngModel)]="filtro.moneda" 
+                (ionChange)="aplicarFiltros()"
+                interface="popover"
+              >
+                <ion-select-option value="">Todas</ion-select-option>
+                <ion-select-option value="CRC">Colones (₡)</ion-select-option>
+                <ion-select-option value="USD">Dólares ($)</ion-select-option>
+              </ion-select>
+            </ion-item>
+          </ion-col>
+          <ion-col size="12" size-md="4">
+            <ion-item>
+              <ion-label>Estado</ion-label>
+              <ion-select 
+                [(ngModel)]="filtro.estado" 
+                (ionChange)="aplicarFiltros()"
+                interface="popover"
+              >
+                <ion-select-option value="">Todos</ion-select-option>
+                <ion-select-option value="Activa">Activa</ion-select-option>
+                <ion-select-option value="Bloqueada">Bloqueada</ion-select-option>
+                <ion-select-option value="Cerrada">Cerrada</ion-select-option>
+              </ion-select>
+            </ion-item>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Lista de cuentas -->
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-container">
+    <ion-spinner name="crescent"></ion-spinner>
     <p>Cargando cuentas...</p>
   </div>
+
+  <!-- Sin resultados -->
+  <ion-card *ngIf="!loading && cuentas.length === 0">
+    <ion-card-content class="no-results">
+      <ion-icon name="wallet-outline" size="large"></ion-icon>
+      <h3>No se encontraron cuentas</h3>
+      <p *ngIf="esCliente">No tienes cuentas registradas</p>
+      <p *ngIf="esAdmin || esGestor">No hay cuentas que coincidan con los filtros</p>
+      <ion-button *ngIf="(esAdmin || esGestor) && !filtro.searchTerm" 
+                  (click)="abrirNuevaCuenta()" color="primary">
+        <ion-icon name="add-outline" slot="start"></ion-icon>
+        Abrir primera cuenta
+      </ion-button>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Lista de cuentas -->
+  <ion-list *ngIf="!loading && cuentas.length > 0">
+    <ion-item-sliding *ngFor="let cuenta of cuentas">
+      <ion-item button (click)="verDetalle(cuenta)">
+        <ion-icon 
+          slot="start" 
+          [name]="iconoTipo(cuenta.tipo)" 
+          [color]="colorEstado(cuenta.estado)">
+        </ion-icon>
+        
+        <ion-label>
+          <h2>{{ cuenta.alias }}</h2>
+          <p>
+            <ion-badge [color]="colorEstado(cuenta.estado)" style="margin-right: 8px;">
+              {{ cuenta.estado }}
+            </ion-badge>
+            <ion-badge color="medium">{{ cuenta.tipo }}</ion-badge>
+          </p>
+          <p>Número: {{ cuenta.numero }}</p>
+          <p *ngIf="esAdmin || esGestor">
+            Cliente: {{ cuenta.clienteNombre || 'N/A' }}
+          </p>
+        </ion-label>
+        
+        <ion-note slot="end">
+          <h3 style="font-weight: bold; color: var(--ion-color-primary);">
+            {{ formatoMoneda(cuenta.saldo, cuenta.moneda) }}
+          </h3>
+          <p style="font-size: 12px; color: #666;">{{ cuenta.moneda === 'USD' ? 'USD' : 'CRC' }}</p>
+        </ion-note>
+      </ion-item>
+
+      <!-- Opciones para admin -->
+      <ion-item-options side="end" *ngIf="esAdmin">
+        <ion-item-option color="primary" (click)="verDetalle(cuenta)">
+          <ion-icon slot="icon-only" name="eye-outline"></ion-icon>
+        </ion-item-option>
+        <ion-item-option 
+          color="warning" 
+          (click)="cambiarEstado(cuenta, cuenta.estado === 'Activa' ? 'Bloqueada' : 'Activa')"
+        >
+          <ion-icon slot="icon-only" 
+            [name]="cuenta.estado === 'Activa' ? 'lock-closed-outline' : 'lock-open-outline'">
+          </ion-icon>
+        </ion-item-option>
+        <ion-item-option color="danger" (click)="cambiarEstado(cuenta, 'Cerrada')">
+          <ion-icon slot="icon-only" name="close-circle-outline"></ion-icon>
+        </ion-item-option>
+      </ion-item-options>
+    </ion-item-sliding>
+  </ion-list>
+
+  <!-- Total para admin/gestor -->
+  <ion-card *ngIf="(esAdmin || esGestor) && cuentas.length > 0">
+    <ion-card-content>
+      <ion-grid>
+        <ion-row>
+          <ion-col>
+            <h3>Total Cuentas Mostradas</h3>
+            <p style="font-size: 20px; font-weight: bold;">{{ cuentas.length }}</p>
+          </ion-col>
+          <ion-col>
+            <h3>Saldo Total CRC</h3>
+            <p style="font-size: 20px; font-weight: bold; color: green;">
+              {{ formatoMoneda(calcularSaldoPorMoneda('CRC'), 'CRC') }}
+            </p>
+          </ion-col>
+          <ion-col>
+            <h3>Saldo Total USD</h3>
+            <p style="font-size: 20px; font-weight: bold; color: blue;">
+              {{ formatoMoneda(calcularSaldoPorMoneda('USD'), 'USD') }}
+            </p>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </ion-card-content>
+  </ion-card>
 </ion-content>

@@ -7,7 +7,15 @@ const routes: Routes = [
   {
     path: '',
     component: CuentasPage
+  },  {
+    path: 'apertura-cuenta',
+    loadChildren: () => import('./apertura-cuenta/apertura-cuenta.module').then( m => m.AperturaCuentaPageModule)
+  },
+  {
+    path: 'detalle-cuenta',
+    loadChildren: () => import('./detalle-cuenta/detalle-cuenta.module').then( m => m.DetalleCuentaPageModule)
   }
+
 ];
 
 @NgModule({

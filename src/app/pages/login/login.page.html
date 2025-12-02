@@ -1,10 +1,10 @@
-<!-- login.page.html - VERSIÓN SIMPLIFICADA -->
+<!-- src/app/pages/login/login.page.html - SIN DATOS DEMO -->
 <ion-content>
   <div class="login-container">
     <!-- Logo o Título -->
     <div class="logo-section">
       <ion-icon name="business-outline" size="large"></ion-icon>
-      <h1>Banco Digital</h1>
+      <h1>Banco Digital UIA</h1>
       <p>Sistema de Banca en Línea</p>
     </div>
 
@@ -12,7 +12,7 @@
     <ion-card class="login-card">
       <ion-card-header>
         <ion-card-title>Iniciar Sesión</ion-card-title>
-        <ion-card-subtitle>Ingrese sus credenciales</ion-card-subtitle>
+        <ion-card-subtitle>Acceso al sistema bancario</ion-card-subtitle>
       </ion-card-header>
 
       <ion-card-content>
@@ -21,23 +21,33 @@
           <ion-list lines="full">
             <!-- Email -->
             <ion-item>
-              <ion-label position="floating">Email</ion-label>
+              <ion-label position="floating">
+                <ion-icon name="mail-outline" slot="start"></ion-icon>
+                Email
+              </ion-label>
               <ion-input 
                 type="email" 
                 [(ngModel)]="credentials.email" 
                 name="email"
-                required>
+                required
+                autocomplete="email"
+                placeholder="usuario@dominio.com">
               </ion-input>
             </ion-item>
 
             <!-- Contraseña -->
             <ion-item>
-              <ion-label position="floating">Contraseña</ion-label>
+              <ion-label position="floating">
+                <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
+                Contraseña
+              </ion-label>
               <ion-input 
                 type="password" 
                 [(ngModel)]="credentials.password" 
                 name="password"
-                required>
+                required
+                autocomplete="current-password"
+                placeholder="••••••••">
               </ion-input>
             </ion-item>
 
@@ -56,7 +66,7 @@
             [disabled]="loading || !credentials.email || !credentials.password"
             class="login-button">
             <ion-spinner *ngIf="loading" name="crescent"></ion-spinner>
-            <span *ngIf="!loading">Ingresar</span>
+            <span *ngIf="!loading">Ingresar al Sistema</span>
           </ion-button>
 
           <!-- Olvidé contraseña -->
@@ -65,69 +75,12 @@
           </div>
         </form>
 
-        <!-- SEPARADOR -->
-        <div class="separator">
-          <span>Usuarios de prueba</span>
-        </div>
-
-        <!-- USUARIOS DE PRUEBA -->
-        <div class="demo-users">
-          <ion-grid>
-            <ion-row>
-              <!-- Admin -->
-              <ion-col size="12" size-md="6">
-                <ion-card button (click)="loadDemoUser(usuariosDemo[0])" color="primary">
-                  <ion-card-header>
-                    <ion-card-title>Administrador</ion-card-title>
-                  </ion-card-header>
-                  <ion-card-content>
-                    <p><strong>Email:</strong> admin@banco.com</p>
-                    <p><strong>Contraseña:</strong> admin123</p>
-                  </ion-card-content>
-                </ion-card>
-              </ion-col>
-
-              <!-- Cliente -->
-              <ion-col size="12" size-md="6">
-                <ion-card button (click)="loadDemoUser(usuariosDemo[1])" color="secondary">
-                  <ion-card-header>
-                    <ion-card-title>Cliente</ion-card-title>
-                  </ion-card-header>
-                  <ion-card-content>
-                    <p><strong>Email:</strong> cliente@banco.com</p>
-                    <p><strong>Contraseña:</strong> cliente123</p>
-                  </ion-card-content>
-                </ion-card>
-              </ion-col>
-
-              <!-- Gestor -->
-              <ion-col size="12" size-md="6">
-                <ion-card button (click)="loadDemoUser(usuariosDemo[2])" color="tertiary">
-                  <ion-card-header>
-                    <ion-card-title>Gestor</ion-card-title>
-                  </ion-card-header>
-                  <ion-card-content>
-                    <p><strong>Email:</strong> gestor@banco.com</p>
-                    <p><strong>Contraseña:</strong> gestor123</p>
-                  </ion-card-content>
-                </ion-card>
-              </ion-col>
-
-              <!-- Test -->
-              <ion-col size="12" size-md="6">
-                <ion-card button (click)="loadDemoUser(usuariosDemo[3])" color="medium">
-                  <ion-card-header>
-                    <ion-card-title>Usuario Test</ion-card-title>
-                  </ion-card-header>
-                  <ion-card-content>
-                    <p><strong>Email:</strong> test@test.com</p>
-                    <p><strong>Contraseña:</strong> test123</p>
-                  </ion-card-content>
-                </ion-card>
-              </ion-col>
-            </ion-row>
-          </ion-grid>
-        </div>
+        <!-- NOTA INFORMATIVA -->
+        <ion-note color="medium" class="info-note">
+          <ion-icon name="information-circle-outline"></ion-icon>
+          Sistema de Banca en Línea - Universidad Internacional de las Américas<br>
+          <small>Ingrese sus credenciales proporcionadas por el banco</small>
+        </ion-note>
       </ion-card-content>
     </ion-card>
   </div>

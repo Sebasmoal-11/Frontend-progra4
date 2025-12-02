@@ -58,6 +58,14 @@ const routes: Routes = [
     path: 'pagos',
     loadComponent: () => import('./pages/pagos/pagos.page').then(m => m.PagosPage),
     canActivate: [AuthGuard]
+  },
+  {
+    path: 'cuentas',
+    loadComponent: () => import('./pages/cuentas/cuentas.page').then(m => m.CuentasPage)
+  },
+  {
+    path: 'detalle-cuenta/:numero',
+    loadComponent: () => import('./pages/cuentas/detalle-cuenta/detalle-cuenta.page').then(m => m.DetalleCuentaPage)
   }
 ];
 

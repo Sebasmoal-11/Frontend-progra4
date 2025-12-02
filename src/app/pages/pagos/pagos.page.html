@@ -9,41 +9,29 @@
 
 <ion-content>
   <!-- Proveedores disponibles -->
-  <ion-card>
+  <ion-card *ngFor="let proveedor of proveedores">
     <ion-card-header>
-      <ion-card-title>Proveedores Disponibles</ion-card-title>
+      <ion-card-title>{{ proveedor }}</ion-card-title>
     </ion-card-header>
     <ion-card-content>
-      <ion-grid>
-        <ion-row>
-          <ion-col size="6" *ngFor="let proveedor of proveedores">
-            <ion-card button (click)="seleccionarProveedor(proveedor)">
-              <ion-card-content class="ion-text-center">
-                <ion-icon name="receipt-outline" size="large"></ion-icon>
-                <h4>{{ proveedor.nombre }}</h4>
-                <p>Contrato: {{ proveedor.longitudMinContrato }}-{{ proveedor.longitudMaxContrato }} dígitos</p>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
+      <p>Ingrese el número de contrato para pagar</p>
+      <ion-button expand="block" (click)="seleccionarProveedor(proveedor)">
+        Seleccionar
+      </ion-button>
     </ion-card-content>
   </ion-card>
 
   <!-- Formulario de pago -->
   <ion-card *ngIf="proveedorSeleccionado">
     <ion-card-header>
-      <ion-card-title>Pagar {{ proveedorSeleccionado.nombre }}</ion-card-title>
+      <ion-card-title>Pagar {{ proveedorSeleccionado }}</ion-card-title>
     </ion-card-header>
     <ion-card-content>
       <form (ngSubmit)="realizarPago()">
         <!-- Número de contrato -->
         <ion-item>
           <ion-label position="stacked">Número de Contrato</ion-label>
-          <ion-input 
-            [(ngModel)]="pago.numeroContrato" 
-            name="numeroContrato"
-            placeholder="Ingrese su número de contrato"
+          <ion-input [(ngModel)]="pago.numeroContrato" name="numeroContrato" placeholder="Ingrese su número de contrato"
             required>
           </ion-input>
         </ion-item>
@@ -61,12 +49,7 @@
         <!-- Monto -->
         <ion-item>
           <ion-label position="stacked">Monto a Pagar</ion-label>
-          <ion-input 
-            type="number" 
-            [(ngModel)]="pago.monto" 
-            name="monto"
-            placeholder="0.00"
-            required>
+          <ion-input type="number" [(ngModel)]="pago.monto" name="monto" placeholder="0.00" required>
           </ion-input>
         </ion-item>
 

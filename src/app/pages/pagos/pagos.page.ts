@@ -1,11 +1,14 @@
 import { Component, OnInit } from '@angular/core';
-import { ProveedoresService } from '../../services/proveedores.service';
-import { CuentasService } from '../../services/cuentas.service';
-import { PagosService } from '../../services/pagos.service';
-import { Cuenta, Proveedor } from '../../models/models/types';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonicModule } from '@ionic/angular';
+import { 
+  IonicModule, 
+  AlertController, 
+  ToastController 
+} from '@ionic/angular';
+import { AuthService } from '../../services/auth';
+import { CuentasService } from '../../services/cuentas.service';
+import { PagosService } from '../../services/pagos.service';
 
 @Component({
   selector: 'app-pagos',
@@ -15,81 +18,118 @@ import { IonicModule } from '@ionic/angular';
   imports: [IonicModule, CommonModule, FormsModule]
 })
 export class PagosPage implements OnInit {
-  proveedores: Proveedor[] = [];
-  cuentas: Cuenta[] = [];
-  proveedorSeleccionado: Proveedor | null = null;
+  cuentas: any[] = [];
+  pagos: any[] = [];
   loading = false;
-
+  
+  // Proveedores - simplificado
+  proveedores: string[] = ['Electricidad', 'Agua', 'Telefonía', 'Internet', 'Impuestos'];
+  proveedorSeleccionado: string = '';
+  
+  // Datos para nuevo pago
   pago = {
-    proveedorId: 0,
-    numeroContrato: '',
     cuentaOrigenId: null as number | null,
+    proveedor: '',
+    numeroContrato: '',
     monto: 0,
     esProgramado: false
   };
 
   constructor(
-    private proveedoresService: ProveedoresService,
+    private authService: AuthService,
     private cuentasService: CuentasService,
-    private pagosService: PagosService
+    private pagosService: PagosService,
+    private alertCtrl: AlertController,
+    private toastCtrl: ToastController
   ) {}
 
-  ngOnInit() {
-    this.cargarDatos();
+  async ngOnInit() {
+    await this.cargarCuentas();
+    await this.cargarPagos();
   }
 
-  async cargarDatos() {
+  async cargarCuentas() {
     this.loading = true;
     try {
-      // Datos de prueba
-      this.proveedores = [
-        { proveedorServicioId: 1, nombre: 'ICE', longitudMinContrato: 8, longitudMaxContrato: 10, reglasAdicionales: 'Solo números' },
-        { proveedorServicioId: 2, nombre: 'AyA', longitudMinContrato: 9, longitudMaxContrato: 12, reglasAdicionales: 'Solo números' },
-        { proveedorServicioId: 3, nombre: 'CNFL', longitudMinContrato: 7, longitudMaxContrato: 9, reglasAdicionales: 'Solo números' }
-      ];
-      
-      const resultado = await this.cuentasService.obtenerCuentas().toPromise();
-      this.cuentas = resultado || [];
+      const clienteId = this.authService.getClienteId();
+      if (clienteId) {
+        const resultado = await this.cuentasService.getCuentasPorCliente(clienteId).toPromise();
+        this.cuentas = resultado || [];
+      }
     } catch (error) {
-      console.error('Error cargando datos:', error);
+      console.error('Error cargando cuentas:', error);
+      this.mostrarToast('Error cargando cuentas', 'danger');
     } finally {
       this.loading = false;
     }
   }
 
-  seleccionarProveedor(proveedor: Proveedor) {
+  async cargarPagos() {
+    // Implementar según servicio
+    try {
+      // this.pagos = await this.pagosService.obtenerPagos().toPromise();
+    } catch (error) {
+      console.error('Error cargando pagos:', error);
+    }
+  }
+
+  // Método para seleccionar proveedor
+  seleccionarProveedor(proveedor: string) {
     this.proveedorSeleccionado = proveedor;
-    this.pago.proveedorId = proveedor.proveedorServicioId;
+    this.pago.proveedor = proveedor;
+  }
+
+  // Validar formulario
+  formularioValido(): boolean {
+    return (
+      !!this.pago.cuentaOrigenId &&
+      !!this.pago.proveedor &&
+      !!this.pago.numeroContrato &&
+      this.pago.monto > 0
+    );
   }
 
   async realizarPago() {
-    if (!this.proveedorSeleccionado || !this.pago.cuentaOrigenId) {
+    if (!this.formularioValido()) {
+      this.mostrarToast('Complete todos los campos requeridos', 'warning');
       return;
     }
 
     this.loading = true;
     try {
-      // Aquí llamarías al servicio real
-      console.log('Realizando pago:', this.pago);
+      // Implementar llamada al servicio real
+      // const resultado = await this.pagosService.realizarPago(this.pago).toPromise();
       
-      // Simulación de éxito
-      alert('¡Pago realizado exitosamente!');
-      
-      // Limpiar formulario
-      this.pago = {
-        proveedorId: 0,
-        numeroContrato: '',
-        cuentaOrigenId: null,
-        monto: 0,
-        esProgramado: false
-      };
-      this.proveedorSeleccionado = null;
-      
+      // Temporal
+      this.mostrarToast('Pago realizado exitosamente', 'success');
+      this.limpiarFormulario();
+      await this.cargarPagos();
     } catch (error) {
       console.error('Error realizando pago:', error);
-      alert('Error al realizar el pago');
+      this.mostrarToast('Error realizando pago', 'danger');
     } finally {
       this.loading = false;
     }
+  }
+
+  limpiarFormulario() {
+    this.pago = {
+      cuentaOrigenId: null,
+      proveedor: '',
+      numeroContrato: '',
+      monto: 0,
+      esProgramado: false
+    };
+    this.proveedorSeleccionado = '';
+  }
+
+  async mostrarToast(mensaje: string, color: string = 'primary') {
+    const toast = await this.toastCtrl.create({
+      message: mensaje,
+      duration: 3000,
+      color: color,
+      position: 'bottom'
+    });
+    await toast.present();
   }
 }

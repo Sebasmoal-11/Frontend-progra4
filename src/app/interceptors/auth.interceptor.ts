@@ -1,26 +1,40 @@
+// src/app/interceptors/auth.interceptor.ts
 import { Injectable } from '@angular/core';
-import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { AuthService } from '../services/auth';
+import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse } from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { Router } from '@angular/router';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
-  
-  constructor(private authService: AuthService) {}
+  constructor(private router: Router) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    // Obtener el token del servicio de autenticación
-    const token = this.authService.getToken();
+    // Obtener token del localStorage
+    const token = localStorage.getItem('token');
     
-    // Si hay token, clonar la request y agregar el header Authorization
+    // Clonar la request y agregar headers
+    let authReq = req;
+    
     if (token) {
-      const cloned = req.clone({
-        headers: req.headers.set('Authorization', `Bearer ${token}`)
+      authReq = req.clone({
+        setHeaders: {
+          Authorization: `Bearer ${token}`
+        }
       });
-      return next.handle(cloned);
     }
     
-    // Si no hay token, enviar la request normal
-    return next.handle(req);
+    // Manejar la request
+    return next.handle(authReq).pipe(
+      catchError((error: HttpErrorResponse) => {
+        if (error.status === 401) {
+          // Token expirado o inválido
+          localStorage.removeItem('token');
+          localStorage.removeItem('usuario');
+          this.router.navigate(['/login']);
+        }
+        return throwError(() => error);
+      })
+    );
   }
 }

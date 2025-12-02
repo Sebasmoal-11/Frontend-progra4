@@ -17,6 +17,13 @@
   <!-- add to homescreen for ios -->
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+
+  <!-- En src/index.html, dentro de <head> -->
+<meta http-equiv="Content-Security-Policy" 
+      content="default-src 'self' https://localhost:7245 data: gap: https://ssl.gstatic.com 'unsafe-eval' 'unsafe-inline'; 
+               style-src 'self' 'unsafe-inline'; 
+               media-src *; 
+               img-src 'self' data: content:;">
 </head>
 
 <body>
