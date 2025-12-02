@@ -47,3 +47,26 @@ export interface Transaccion {
   transferenciaId?: number;
   pagoServicioId?: number;
 }
+export interface Proveedor {
+  proveedorServicioId: number;
+  nombre: string;
+  longitudMinContrato: number;
+  longitudMaxContrato: number;
+  reglasAdicionales?: string;
+}
+
+export interface PagoServicio {
+  pagoServicioId: number;
+  clienteId: number;
+  proveedorServicioId: number;
+  numeroContrato: string;
+  monto: number;
+  moneda: string;
+  cuentaOrigenId: number;
+  fechaCreacion: string;
+  fechaEjecucion: string;
+  esProgramado: boolean;
+  estado: string;
+  numeroReferencia: string;
+  comision: number;
+}

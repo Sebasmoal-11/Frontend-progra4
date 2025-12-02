@@ -1,0 +1,40 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button></ion-back-button>
+    </ion-buttons>
+    <ion-title>Mis Beneficiarios</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="nuevoBeneficiario()">
+        <ion-icon name="add-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <!-- Lista de Beneficiarios -->
+  <ion-list>
+    <ion-item *ngFor="let beneficiario of beneficiarios" (click)="editarBeneficiario(beneficiario)">
+      <ion-label>
+        <h3>{{ beneficiario.alias }}</h3>
+        <p>Banco: {{ beneficiario.banco }}</p>
+        <p>Cuenta: {{ beneficiario.numeroCuenta }}</p>
+        <p>Moneda: {{ beneficiario.moneda }}</p>
+      </ion-label>
+      <ion-badge slot="end" [color]="beneficiario.estado === 'Activo' ? 'success' : 'warning'">
+        {{ beneficiario.estado }}
+      </ion-badge>
+    </ion-item>
+  </ion-list>
+
+  <!-- Sin beneficiarios -->
+  <div *ngIf="beneficiarios.length === 0 && !loading" class="ion-text-center ion-padding">
+    <ion-icon name="people-outline" size="large"></ion-icon>
+    <h3>No tienes beneficiarios</h3>
+    <p>Agrega beneficiarios para hacer transferencias más rápido.</p>
+    <ion-button (click)="nuevoBeneficiario()" fill="outline">
+      Agregar Primer Beneficiario
+    </ion-button>
+  </div>
+</ion-content>

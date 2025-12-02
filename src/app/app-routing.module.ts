@@ -39,6 +39,25 @@ const routes: Routes = [
   {
     path: '**',
     redirectTo: 'dashboard'
+  },
+  {
+  path: 'beneficiarios',
+  loadComponent: () => import('./pages/beneficiarios/beneficiarios.page').then(m => m.BeneficiariosPage),
+  canActivate: [AuthGuard]
+},
+{
+  path: 'pagos',
+  loadComponent: () => import('./pages/pagos/pagos.page').then(m => m.PagosPage),
+  canActivate: [AuthGuard]
+}, {
+    path: 'beneficiarios',
+    loadComponent: () => import('./pages/beneficiarios/beneficiarios.page').then(m => m.BeneficiariosPage),
+    canActivate: [AuthGuard]
+  },
+  {
+    path: 'pagos',
+    loadComponent: () => import('./pages/pagos/pagos.page').then(m => m.PagosPage),
+    canActivate: [AuthGuard]
   }
 ];
 
