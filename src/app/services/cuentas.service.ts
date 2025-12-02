@@ -64,8 +64,6 @@ export class CuentasService {
     return cuentaMapeada;
   }
 
-  // ==================== MÉTODOS HTTP CORREGIDOS ====================
-
   // Obtener cuentas por cliente ID
   getCuentasPorCliente(clienteId: number): Observable<any[]> {
     const url = `${this.baseUrl}/Cuenta/PorCliente/${clienteId}`;
@@ -221,6 +219,37 @@ export class CuentasService {
       })
     );
   }
+
+getEstadisticasDashboard(): Observable<any> {
+  return new Observable(observer => {
+    this.getAllCuentas().subscribe(cuentas => {
+      const cuentasActivas = cuentas.filter(c => c.estado === 'Activa');
+      const cuentasBloqueadas = cuentas.filter(c => c.estado === 'Bloqueada');
+      const cuentasCerradas = cuentas.filter(c => c.estado === 'Cerrada');
+      
+      const saldoTotalCRC = cuentasActivas
+        .filter(c => c.moneda === 'CRC')
+        .reduce((total, c) => total + c.saldo, 0);
+        
+      const saldoTotalUSD = cuentasActivas
+        .filter(c => c.moneda === 'USD')
+        .reduce((total, c) => total + c.saldo, 0);
+      
+      const estadisticas = {
+        totalCuentas: cuentas.length,
+        cuentasActivas: cuentasActivas.length,
+        cuentasBloqueadas: cuentasBloqueadas.length,
+        cuentasCerradas: cuentasCerradas.length,
+        saldoTotalCRC: saldoTotalCRC,
+        saldoTotalUSD: saldoTotalUSD,
+        saldoTotal: saldoTotalCRC + (saldoTotalUSD * 650) // Asumiendo tasa de cambio 1 USD = 650 CRC
+      };
+      
+      observer.next(estadisticas);
+      observer.complete();
+    });
+  });
+}
 
   // ==================== MÉTODOS AUXILIARES ====================
 

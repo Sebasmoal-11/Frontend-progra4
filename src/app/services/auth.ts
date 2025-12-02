@@ -63,58 +63,101 @@ export class AuthService {
     this.checkAuthStatus();
   }
 
-  // ==================== LOGIN ====================
-  async login(email: string, password: string): Promise<boolean> {
-    console.log('🔐 Iniciando sesión para:', email);
+// ==================== LOGIN ====================
+async login(email: string, password: string): Promise<boolean> {
+  console.log('Iniciando sesión para:', email);
 
-    try {
-      // 1. Hacer login al backend
-      const loginData: LoginRequest = { email, password };
+  try {
+    // 1. Hacer login al backend
+    const loginData: LoginRequest = { email, password };
 
-      const response = await this.http.post<LoginResponse>(
-        `${this.apiUrl}/Autenticacion/login`,
-        loginData
-      ).toPromise();
+    const response = await this.http.post<LoginResponse>(
+      `${this.apiUrl}/Autenticacion/login`,
+      loginData
+    ).toPromise();
 
-      if (!response || !response.token) {
-        console.error('No se recibió token en la respuesta');
-        return false;
-      }
-
-      console.log('Token JWT recibido correctamente');
-
-      // 2. Guardar token en localStorage
-      localStorage.setItem('token', response.token);
-
-      // 3. Extraer datos del usuario del token JWT
-      const usuario = this.extractUserFromToken(response.token, email);
-
-      // 4. Guardar usuario en localStorage
-      localStorage.setItem('usuario', JSON.stringify(usuario));
-
-      // 5. Actualizar estado de autenticación
-      this.isAuthenticated.next(true);
-
-      // 6. Redirigir al dashboard
-      this.router.navigate(['/dashboard']);
-
-      return true;
-
-    } catch (error: any) {
-      console.error('Error en login:', error);
-
-      // Manejo específico de errores HTTP
-      if (error.status === 401) {
-        console.error('Credenciales incorrectas');
-      } else if (error.status === 0) {
-        console.error('No se puede conectar al servidor. Verifique que el backend esté corriendo.');
-      } else if (error.status === 404) {
-        console.error('Endpoint no encontrado. Verifique la URL.');
-      }
-
+    if (!response || !response.token) {
+      console.error('No se recibió token en la respuesta');
       return false;
     }
+
+    console.log('Token JWT recibido correctamente');
+
+    // 2. Guardar token en localStorage
+    localStorage.setItem('token', response.token);
+    
+    // 3. Extraer datos del usuario del token JWT
+    const usuario = this.extractUserFromToken(response.token, email);
+
+    // 4. OBTENER CLIENTE ID DEL BACKEND (NUEVO)
+    await this.asignarClienteId(usuario);
+
+    // 5. Guardar usuario en localStorage
+    localStorage.setItem('usuario', JSON.stringify(usuario));
+
+    // 6. Actualizar estado de autenticación
+    this.isAuthenticated.next(true);
+
+    // 7. Redirigir al dashboard
+    this.router.navigate(['/dashboard']);
+
+    return true;
+
+  } catch (error: any) {
+    console.error('Error en login:', error);
+
+    // Manejo específico de errores HTTP
+    if (error.status === 401) {
+      console.error('Credenciales incorrectas');
+    } else if (error.status === 0) {
+      console.error('No se puede conectar al servidor. Verifique que el backend esté corriendo.');
+    } else if (error.status === 404) {
+      console.error('Endpoint no encontrado. Verifique la URL.');
+    }
+
+    return false;
   }
+}
+
+// Método para obtener clienteId 
+private async asignarClienteId(usuario: any): Promise<void> {
+  try {
+    const clientes = await this.http.get<any[]>('https://localhost:7245/Cliente').toPromise();
+    
+    // Verificar si se obtuvieron clientes
+    if (!clientes) {
+      console.log('No se obtuvieron clientes del backend');
+      return;
+    }
+    
+    // Convertir usuarioId a número si es string
+    const usuarioIdNum = typeof usuario.usuarioId === 'string' 
+      ? parseInt(usuario.usuarioId) 
+      : usuario.usuarioId;
+    
+    // Buscar cliente por usuarioId
+    let cliente = clientes.find(c => c.usuarioId === usuarioIdNum);
+    
+    // Si no se encuentra, buscar por email
+    if (!cliente) {
+      cliente = clientes.find(c => c.correo === usuario.email);
+    }
+    
+    if (cliente) {
+      usuario.clienteId = cliente.clienteId;
+      usuario.nombreCompleto = cliente.nombreCompleto;
+      console.log('Cliente asignado al usuario:', usuario);
+    } else {
+      console.log('No se encontró cliente para el usuario:', usuario.email);
+      // Si es admin/gestor, no es necesario tener clienteId
+      if (usuario.rol !== 'Administrador' && usuario.rol !== 'Gestor') {
+        console.warn('Usuario cliente sin registro en tabla Clientes');
+      }
+    }
+  } catch (error) {
+    console.error('Error obteniendo clienteId:', error);
+  }
+}
 
    // ==================== MÉTODOS PRIVADOS PARA MANEJO DE JWT ====================
   
